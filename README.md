@@ -152,7 +152,7 @@ See [the operations guide](docs/operations.md) for account policy, backups, imag
 
 No credentials, Hub database, cookie secrets, or user workspaces belong in this repository.
 
-Institutional deployment considerations
+## Institutional deployment considerations
 
 This repository provides a reusable, containerized scientific computing stack for research and education. It is designed to be adapted to different institutional environments rather than prescribing a specific authentication or infrastructure policy.
 
