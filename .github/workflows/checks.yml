@@ -1,0 +1,60 @@
+name: Repository checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python syntax, tests, and notebooks
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Check Python syntax without executing Hub configuration
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          for directory in ('jupyterhub', 'singleuser', 'tests'):
+              for path in Path(directory).rglob('*.py'):
+                  ast.parse(path.read_text(), filename=str(path))
+                  print(f'OK: {path}')
+          PY
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Validate example notebook structure
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for path in Path('notebooks').glob('*.ipynb'):
+              notebook = json.loads(path.read_text())
+              assert notebook['nbformat'] == 4, path
+              assert isinstance(notebook['cells'], list), path
+              assert notebook['metadata']['kernelspec']['name'], path
+              for cell in notebook['cells']:
+                  assert cell['cell_type'] in ('code', 'markdown', 'raw'), path
+                  assert isinstance(cell['source'], (str, list)), path
+                  if cell['cell_type'] == 'code':
+                      assert cell['execution_count'] is None, path
+                      assert cell['outputs'] == [], path
+              print(f'OK: {path}')
+          PY
+
+  compose:
+    name: Compose configuration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate configuration without building or starting services
+        run: docker compose config --quiet
