@@ -152,12 +152,21 @@ See [the operations guide](docs/operations.md) for account policy, backups, imag
 
 No credentials, Hub database, cookie secrets, or user workspaces belong in this repository.
 
-### Future production work
+Institutional deployment considerations
 
-- Publicly trusted TLS certificates and a deployment-specific hostname.
-- Docker socket and network isolation review for untrusted workloads.
-- Automated backups with tested restoration, disk quotas, and monitoring.
-- Dependency locking, multi-user load tests, and upgrade/rollback validation.
+This repository provides a reusable, containerized scientific computing stack for research and education. It is designed to be adapted to different institutional environments rather than prescribing a specific authentication or infrastructure policy.
+
+Before deploying the stack as a production service, institutions should address the following requirements:
+
+* Institutional authentication and authorization: Integrate JupyterHub with the institution’s identity management system (e.g., OAuth2/OIDC, LDAP, or SAML through an appropriate authenticator). Define user access policies and ensure stable, unique user identifiers for persistent workspace mapping.
+* Public HTTPS configuration: Configure an institution-specific hostname, publicly trusted TLS certificates, and appropriate network exposure.
+* Security hardening: Review Docker socket access, container isolation, network segmentation, and security policies for potentially untrusted user workloads.
+* Data protection and operations: Establish automated backups with tested restoration procedures, storage quotas, monitoring, and appropriate data retention policies.
+* Reliability and reproducibility: Consider dependency locking, validate concurrent-user capacity through load testing, and establish tested upgrade and rollback procedures.
+
+Institution-specific authentication and authorization are intentionally outside the scope of the default deployment. The stack provides a working local authentication configuration, which institutions can replace or extend according to their requirements.
+
+Production deployment requires an independent security and operational review appropriate to the intended environment.
 
 ## License
 
