@@ -1,0 +1,50 @@
+services:
+  traefik:
+    image: traefik:v3.7
+    container_name: jhub-traefik
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=false"
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=:8443"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+    ports:
+      - "127.0.0.1:8000:80"
+      - "127.0.0.1:8443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./traefik/certs:/etc/traefik/certs:ro
+    networks:
+      - jupyterhub_net
+
+  jupyterhub:
+    image: jupyterhub-scientific-hub:0.1.0
+    container_name: jhub
+    restart: unless-stopped
+    command: jupyterhub -f /etc/jupyterhub/jupyterhub_config.py
+    environment:
+      JUPYTERHUB_USERS_DIR: ${JUPYTERHUB_USERS_DIR:-/srv/jupyterhub/users}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${JUPYTERHUB_HUB_DIR:-/srv/jupyterhub/hub}:/srv/jupyterhub/hub
+      - ${JUPYTERHUB_USERS_DIR:-/srv/jupyterhub/users}:/srv/jupyterhub/users
+      - ./jupyterhub/jupyterhub_config.py:/etc/jupyterhub/jupyterhub_config.py:ro
+    labels:
+      traefik.enable: "true"
+      traefik.http.services.jupyterhub.loadbalancer.server.port: "8000"
+      traefik.http.routers.jupyterhub.rule: "Host(`localhost`)"
+      traefik.http.routers.jupyterhub.entrypoints: websecure
+      traefik.http.routers.jupyterhub.tls: "true"
+    networks:
+      - jupyterhub_net
+
+networks:
+  jupyterhub_net:
+    name: jupyterhub_net
