@@ -57,4 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate configuration without building or starting services
-        run: docker compose config --quiet
+        run: |
+          docker compose config --quiet
+          docker compose config --format json | python3 tests/validate_deployment.py
+          bash -n deploy_linux/jhub-net-rules.sh

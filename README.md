@@ -169,7 +169,14 @@ The unit tests need Python 3.10+ and no third-party dependencies or Docker daemo
 python3 -m unittest discover -s tests -v
 ```
 
-GitHub Actions also checks Python syntax and Compose structure. These are static/unit checks, not end-to-end verification of login, spawning, or ROOT installation.
+GitHub Actions also checks Python syntax, Compose structure, and cross-file network/security contracts. Run the deployment contract checks locally with:
+
+```sh
+docker compose config --format json | python3 tests/validate_deployment.py
+bash -n deploy_linux/jhub-net-rules.sh
+```
+
+These are static/unit checks, not end-to-end verification of login, spawning, or ROOT installation. The [opt-in Docker Desktop rehearsal](tests/integration/README.md) exercises a disposable deployment, migration from `v0.1.0`, and snapshot-based rollback. See the [release checklist](docs/release-checklist.md) for remaining validation requirements.
 
 ## Linux network isolation
 
