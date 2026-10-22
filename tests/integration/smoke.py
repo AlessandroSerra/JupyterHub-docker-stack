@@ -181,7 +181,9 @@ class Rehearsal:
     def form(self, path, data):
         response = self.session.get(self.url + path, timeout=20)
         response.raise_for_status()
-        xsrf = re.search(r'name="_xsrf" value="([^"]+)"', response.text).group(1)
+        match = re.search(r'name="_xsrf" value="([^"]+)"', response.text)
+        assert match, "Expected a fresh authentication form with an XSRF token"
+        xsrf = match.group(1)
         response = self.session.post(self.url + path, data={**data, "_xsrf": xsrf}, timeout=30)
         response.raise_for_status()
         return response
@@ -190,6 +192,19 @@ class Rehearsal:
         return self.form("/hub/signup", {"username": username, "signup_password": password, "signup_password_confirmation": password})
 
     def login(self, stage):
+        # Require credential authentication again, not an existing session redirect.
+        self.session = requests.Session()
+        self.session.trust_env = False
+        self.session.verify = str(self.ca)
+        for _ in range(60):
+            try:
+                if self.session.get(self.url + "/hub/login", timeout=3).status_code == 200:
+                    break
+            except requests.RequestException:
+                pass
+            time.sleep(1)
+        else:
+            raise AssertionError("Login readiness timed out")
         self.form("/hub/login", {"username": "jhubadmin", "password": self.password})
         response = self.session.get(self.url + "/hub/admin", timeout=20)
         self.check(stage + ": session login and administrator access", response.status_code == 200 and "/hub/admin" in response.url)
