@@ -6,7 +6,7 @@ The committed policy in `jupyterhub/jupyterhub_config.py` is deliberately narrow
 
 - `jhubadmin` is the administrator and the only username in the explicit allowlist. NativeAuthenticator also maintains its own approval policy.
 - NativeAuthenticator open signup is disabled.
-- Passwords require at least eight characters and are checked against common passwords.
+- Passwords require at least twelve characters and are checked against common passwords.
 - Five failed logins trigger a 600-second retry delay.
 
 ### Existing deployment
@@ -90,9 +90,9 @@ This is a working development deployment, not a public-service security baseline
 - **Development HTTPS:** Traefik terminates TLS on host port 8443 using a locally issued certificate. HTTP on port 8000 redirects to HTTPS. Clients must trust the issuing development CA; use publicly trusted certificates and an appropriate hostname before public deployment.
 - **Dashboard disabled:** both dashboard and insecure API access are disabled; port 8080 is not published.
 - **Local access only:** ports 8000 and 8443 bind to `127.0.0.1`, and the router matches `localhost`. Network access requires deliberate binding, hostname, certificate, and firewall changes.
-- **Docker socket access:** the Hub can control Docker on the host. Treat Hub compromise as host compromise. Traefik also receives the socket; a read-only bind mount does not make the Docker API read-only.
+- **Docker socket access:** the Hub can control Docker on the host. Treat Hub compromise as host compromise. Traefik has no Docker socket access; it uses the file provider for routing.
 - **Containers are not a complete hostile-code sandbox:** capability dropping and resource limits help, but do not replace host hardening, patching, or stronger isolation for untrusted workloads.
-- **Shared network:** Hub and notebook containers share `jupyterhub_net`. Review network isolation requirements for your users.
+- **Network segmentation:** Traefik and the Hub share `jupyterhub_proxy_net`; only the Hub and notebook containers join `jupyterhub_net`. Notebook-to-notebook isolation requires the optional native Linux firewall rules, which remain untested; see [Linux network isolation](../README.md#linux-network-isolation).
 - **No disk quotas or automated backups:** implement these operationally if needed.
 
 The `.gitignore` provides guardrails, not secret detection. Review staged files before publishing. There is no checked-in password. Compose's optional storage variables are documented in `.env.example`; no environment variables are required when using the Linux defaults.
@@ -128,7 +128,7 @@ docker network inspect jupyterhub_net
 docker ps -a
 ```
 
-Check the Hub logs for the relevant user's spawn attempt. Confirm the image exists on the **same Docker daemon** used by the Hub, the network exists, and the user bind mount is writable with UID/GID 1000:100. The notebook server connects back to `jhub` on the shared network.
+Check the Hub logs for the relevant user's spawn attempt. Confirm the image exists on the **same Docker daemon** used by the Hub, the network exists, and the user bind mount is writable with UID/GID 1000:100. The notebook server connects back to the Hub API at `172.30.250.10:8081` on `jupyterhub_net`. Keep this address aligned with `HUB_IP` in `jupyterhub/jupyterhub_config.py` and the Hub's `ipv4_address` in `compose.yml`.
 
 ### ROOT notebook failures
 

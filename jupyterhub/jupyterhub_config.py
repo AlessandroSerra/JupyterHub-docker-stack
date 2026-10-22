@@ -1,6 +1,6 @@
 import os
 
-# Deve coincidere con ipv4_address del servizio jupyterhub in compose.yml
+# Must match the jupyterhub service's ipv4_address in compose.yml.
 HUB_IP = "172.30.250.10"
 
 USERS_ROOT = "/srv/jupyterhub/users"
@@ -9,16 +9,16 @@ USERS_ROOT = "/srv/jupyterhub/users"
 def create_user_dir_hook(spawner):
     username = spawner.user.name
 
-    # Difesa contro username con path traversal (es. "../hub"):
-    # la directory risolta deve stare direttamente sotto USERS_ROOT.
+    # Guard against path traversal in usernames (e.g. "../hub"):
+    # the resolved directory must be directly under USERS_ROOT.
     root = os.path.realpath(USERS_ROOT)
     user_dir = os.path.realpath(os.path.join(root, username))
     if os.path.dirname(user_dir) != root:
-        raise ValueError(f"Directory utente non valida per {username!r}")
+        raise ValueError(f"Invalid user directory for {username!r}")
 
     os.makedirs(user_dir, mode=0o700, exist_ok=True)
 
-    # UID/GID standard delle Jupyter Docker Stacks:
+    # Standard Jupyter Docker Stacks UID/GID:
     # jovyan:users = 1000:100
     os.chown(user_dir, 1000, 100)
     os.chmod(user_dir, 0o700)
@@ -26,28 +26,28 @@ def create_user_dir_hook(spawner):
 
 c = get_config()
 
-# Base JupyterHub
+# Basic JupyterHub settings
 c.JupyterHub.bind_url = "http://0.0.0.0:8000"
 c.JupyterHub.cookie_secret_file = "/srv/jupyterhub/hub/jupyterhub_cookie_secret"
 c.JupyterHub.db_url = "sqlite:////srv/jupyterhub/hub/jupyterhub.sqlite"
 c.JupyterHub.log_level = "INFO"
 
-# Non avviare subito un server notebook dopo il login
+# Do not start a notebook server immediately after login.
 c.JupyterHub.redirect_to_server = False
 
 # NativeAuthenticator
 c.JupyterHub.authenticator_class = "nativeauthenticator.NativeAuthenticator"
 
-# Utente admin JupyterHub
+# JupyterHub administrator
 c.Authenticator.admin_users = {"jhubadmin"}
 
-# Utenti ammessi esplicitamente
+# Explicitly allowed users
 c.Authenticator.allowed_users = {"jhubadmin"}
 
-# Solo username "semplici": niente "/", "..", spazi, maiuscole
+# Simple usernames only: no "/", "..", spaces, or uppercase letters.
 c.Authenticator.username_pattern = r"^[a-z][a-z0-9_-]{1,31}$"
 
-# Signup chiuso: gli account li autorizza l'admin
+# Disable automatic signup approval; administrators authorize accounts.
 c.NativeAuthenticator.open_signup = False
 
 # Password policy
@@ -63,19 +63,19 @@ c.DockerSpawner.image = "jupyterhub-scientific-notebook:0.1.0"
 c.DockerSpawner.network_name = "jupyterhub_net"
 c.DockerSpawner.use_internal_ip = True
 
-# L'API dell'Hub (porta 8081) ascolta solo sull'IP della rete utenti,
-# non sulla rete di Traefik.
+# The Hub API (port 8081) listens only on the user-network IP,
+# not on the Traefik network.
 c.JupyterHub.hub_ip = HUB_IP
 c.JupyterHub.hub_connect_ip = HUB_IP
 
-# Directory di lavoro dentro il container studente
+# Working directory inside the user container
 notebook_dir = "/home/jovyan/work"
 c.DockerSpawner.notebook_dir = notebook_dir
 
-# Sistema i permessi del bind mount
+# Set bind-mount permissions before spawning.
 c.Spawner.pre_spawn_hook = create_user_dir_hook
 
-# Variabili d'ambiente dei notebook
+# Notebook environment variables
 c.DockerSpawner.environment = {
     "CONDA_ENVS_PATH": "/home/jovyan/work/.conda/envs",
     "CONDA_PKGS_DIRS": "/home/jovyan/work/.conda/pkgs",
@@ -86,22 +86,22 @@ c.DockerSpawner.environment = {
     "NUMEXPR_NUM_THREADS": "1",
 }
 
-# Docker risolve i bind mount sull'host, non dentro il container dell'Hub.
-# L'hook usa comunque /srv/jupyterhub/users, dove Compose monta questo albero.
+# Docker resolves bind mounts on the host, not inside the Hub container.
+# The hook still uses /srv/jupyterhub/users, where Compose mounts this tree.
 host_users_dir = os.environ.get("JUPYTERHUB_USERS_DIR", "/srv/jupyterhub/users")
 if not os.path.isabs(host_users_dir):
     raise ValueError("JUPYTERHUB_USERS_DIR must be an absolute host path")
 c.DockerSpawner.volumes = {os.path.join(host_users_dir, "{username}"): notebook_dir}
 
-# Rimuove il container quando lo studente ferma il server.
-# I dati restano nel bind mount.
+# Remove the container when the user stops the server.
+# Data remains in the bind mount.
 c.DockerSpawner.remove = True
 
-# Limiti risorse container studenti
+# User-container resource limits
 c.DockerSpawner.mem_limit = "2G"
 c.DockerSpawner.cpu_limit = 1.0
 
-# Hardening base container studenti
+# Basic user-container hardening
 c.DockerSpawner.extra_host_config = {
     "cap_drop": ["ALL"],
     "security_opt": ["no-new-privileges"],

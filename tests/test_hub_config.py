@@ -36,7 +36,7 @@ class HubStorageTests(unittest.TestCase):
         spawner.user.name = "student"
         with patch("os.makedirs") as mkdir, patch("os.chown") as chown, patch("os.chmod") as chmod:
             namespace["create_user_dir_hook"](spawner)
-        mkdir.assert_called_once_with("/srv/jupyterhub/users/student", exist_ok=True)
+        mkdir.assert_called_once_with("/srv/jupyterhub/users/student", mode=0o700, exist_ok=True)
         chown.assert_called_once_with("/srv/jupyterhub/users/student", 1000, 100)
         chmod.assert_called_once_with("/srv/jupyterhub/users/student", 0o700)
 

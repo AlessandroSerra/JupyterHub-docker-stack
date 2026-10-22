@@ -6,8 +6,8 @@ COPY register-conda-kernel.py /usr/local/bin/register-conda-kernel
 RUN chown root:root /usr/local/bin/register-conda-kernel \
     && chmod 755 /usr/local/bin/register-conda-kernel
 
-# Per ora niente sudo e niente pacchetti extra di sistema.
-# Torniamo all'utente non-root standard delle Jupyter Docker Stacks.
+# No sudo or additional system packages for now.
+# Switch back to the standard non-root Jupyter Docker Stacks user.
 USER ${NB_UID}
 
 RUN mamba install -y \

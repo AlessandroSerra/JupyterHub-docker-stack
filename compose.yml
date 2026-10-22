@@ -58,7 +58,7 @@ networks:
   proxy_net:
     name: jupyterhub_proxy_net
 
-  # Hub <-> container utente (interfaccia dedicata, serve alle regole iptables)
+  # Hub <-> user containers (dedicated bridge interface for iptables rules)
   jupyterhub_net:
     name: jupyterhub_net
     driver: bridge

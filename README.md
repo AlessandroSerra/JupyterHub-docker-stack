@@ -39,7 +39,7 @@ This repository captures a working deployment, not a production-hardened platfor
 | `tests/` | Standard-library tests for the kernel helper and host storage mapping |
 | `docs/operations.md` | Administration, persistence, security, and troubleshooting |
 | `traefik/dynamic/jupyterhub.yml` | Static Traefik route, rate limit and security headers (Traefik has no Docker socket access) |
-| `linux_deploy/` | Linux-only network isolation (iptables script and systemd unit); not yet tested |
+| `deploy_linux/` | Linux-only network isolation (iptables script and systemd unit); not yet tested |
 
 ## Prerequisites
 
@@ -150,16 +150,16 @@ GitHub Actions also checks Python syntax and Compose structure. These are static
 
 ## Linux network isolation
 
-> **Status: untested.** The stack is developed and verified on macOS (Docker Desktop). The files in `linux_deploy/` require a native Linux Docker Engine host and must be validated on first deployment.
+> **Status: untested.** The stack is developed and verified on macOS (Docker Desktop). The files in `deploy_linux/` require a native Linux Docker Engine host and must be validated on first deployment.
 
-Docker Desktop runs containers inside a VM, so host firewall rules cannot affect them. On native Linux, `linux_deploy/jhub-net-rules.sh` blocks traffic between user containers, from user containers to the host, LAN and cloud metadata addresses, and allows only the Hub API (tcp/8081) towards the Hub. Internet access stays open for conda and pip.
+Docker Desktop runs containers inside a VM, so host firewall rules cannot affect them. On native Linux, `deploy_linux/jhub-net-rules.sh` blocks traffic between user containers, from user containers to the host, LAN and cloud metadata addresses, and allows only the Hub API (tcp/8081) towards the Hub. Internet access stays open for conda and pip.
 
 1. Find your real DNS resolvers (`grep nameserver /etc/resolv.conf`, or `resolvectl status` if you see `127.0.0.53`) and set them in `DNS_SERVERS` inside the script. The script refuses to run until you do.
 2. Install the script and the unit, then enable it after the stack is up:
 
 ```sh
-sudo install -m 755 linux_deploy/jhub-net-rules.sh /usr/local/sbin/jhub-net-rules.sh
-sudo install -m 644 linux_deploy/jhub-net-rules.service /etc/systemd/system/jhub-net-rules.service
+sudo install -m 755 deploy_linux/jhub-net-rules.sh /usr/local/sbin/jhub-net-rules.sh
+sudo install -m 644 deploy_linux/jhub-net-rules.service /etc/systemd/system/jhub-net-rules.service
 sudo systemctl daemon-reload
 docker compose up -d
 sudo systemctl enable --now jhub-net-rules.service
