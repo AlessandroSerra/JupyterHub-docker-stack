@@ -22,7 +22,7 @@ Changes since Git tag `v0.1.0` (`8bc65b9`). No new release tag or image version 
 - Optional native Linux firewall script and systemd unit in `deploy_linux/`. These remain untested on native Linux and are not enabled automatically.
 - [Migration instructions](docs/migration.md), a [release/Linux validation checklist](docs/release-checklist.md), and an explicit distinction between historical release validation and post-release checks.
 - Unit regressions for directory traversal/symlink escapes, private permissions, and configured account policy; CI checks for Compose/Hub/firewall consistency.
-- An [opt-in disposable Docker Desktop rehearsal](tests/integration/README.md) covering HTTPS/OAuth, Python/ROOT/custom-kernel WebSockets, persistent storage/environments, account restrictions, rate limiting, migration, restart, and snapshot-based rollback.
+- An [opt-in disposable Docker Desktop rehearsal](tests/integration/README.md) covering HTTPS/OAuth, Python/ROOT/custom-kernel WebSockets, persistent storage/environments, account restrictions, login lockout, rate limiting, migration, restart, and snapshot-based rollback.
 
 ### Fixed
 
@@ -30,7 +30,7 @@ Changes since Git tag `v0.1.0` (`8bc65b9`). No new release tag or image version 
 
 ### Upgrade and validation notes
 
-The Docker network must be recreated during upgrade; existing notebook servers must first be stopped through JupyterHub. Review username compatibility, subnet conflicts, local customizations, and backup/rollback requirements in the migration guide. An isolated Docker Desktop rehearsal passed all 59 checks using separately rebuilt candidate images. Native Linux validation remains pending; see [validation status](docs/validation.md#post-v010-development-checks-2026-10-22).
+The Docker network must be recreated during upgrade; existing notebook servers must first be stopped through JupyterHub. Review username compatibility, subnet conflicts, local customizations, and backup/rollback requirements in the migration guide. An isolated Docker Desktop rehearsal passed all 61 checks using separately rebuilt candidate images. Native Linux validation remains pending; see [validation status](docs/validation.md#post-v010-development-checks-2026-10-22).
 
 ## 0.1.0 — 2026-10-14
 

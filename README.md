@@ -49,7 +49,7 @@ This repository captures a working deployment, not a production-hardened platfor
 
 | Path | Purpose |
 | --- | --- |
-| `compose.yml` | Traefik and JupyterHub services and Docker network |
+| `compose.yml` | Traefik and JupyterHub services and Docker networks |
 | `jupyterhub/Dockerfile` | Hub image with DockerSpawner and NativeAuthenticator |
 | `jupyterhub/jupyterhub_config.py` | Authentication, spawning, storage, and resource policy |
 | `singleuser/Dockerfile` | Scientific JupyterLab image, including ROOT |

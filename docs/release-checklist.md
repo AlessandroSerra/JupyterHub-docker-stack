@@ -6,7 +6,7 @@ No new version or tag is assigned by this checklist. The latest released deploym
 
 - [x] All 22 local unit tests pass on Python 3.10.20, 3.12.13, and 3.14.6 (macOS).
 - [x] Python syntax, notebook structure, Compose configuration, cross-file configuration contracts, and Bash syntax pass.
-- [x] The [opt-in isolated rehearsal](../tests/integration/README.md) passes: [59 checks](validation-rehearsal-2026-10-22.json), including migration and snapshot rollback.
+- [x] The [opt-in isolated rehearsal](../tests/integration/README.md) passes: [61 checks](validation-rehearsal-2026-10-22.json), including migration and snapshot rollback.
 - [x] Record source/target commits, fixture adaptations, platform, image IDs, and [uncached candidate-build provenance](validation-builds-2026-10-22.json).
 - [x] Separate historical and current [validation evidence](validation.md), including explicit untested behavior.
 - [ ] Confirm hosted Python 3.10/3.12 CI results after pushing; the local matrix does not establish GitHub Actions status.

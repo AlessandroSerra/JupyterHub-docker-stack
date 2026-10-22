@@ -1,8 +1,8 @@
 {
-  "started_at": "2026-10-22T10:48:29.582007+00:00",
+  "started_at": "2026-10-22T10:54:06.632376+00:00",
   "baseline_commit": "8bc65b91a3293d58f0205c85a60f83bdda0d477c",
-  "project": "jhub-check-913eb1a1",
-  "source_commit": "3ca443961a7e525af51be8ddf9db50ccd5c5ff61",
+  "project": "jhub-check-41254b57",
+  "source_commit": "36960b081579ac8333d34897794cac828e1f5a87",
   "checks": [
     "baseline: HTTP redirect and trusted HTTPS",
     "baseline: session login and administrator access",
@@ -52,6 +52,8 @@
     "restart: WebSocket execution: smoke",
     "restart: workspace and custom environment persisted",
     "restart: stopped notebook container removed",
+    "current: five invalid administrator logins denied",
+    "current: correct password denied during login lockout",
     "rollback: HTTP redirect and trusted HTTPS",
     "rollback: session login and administrator access",
     "rollback: persisted Hub API token",
@@ -70,7 +72,7 @@
     "No visual browser inspection, load testing, or resource-exhaustion testing",
     "Fixture changes names, subnet, ports, TLS paths, and spawner prefix for isolation"
   ],
-  "harness_sha256": "1fee2f5094609ce154643cbec7b9b714d614ccf1ca252272ae58b38296669386",
+  "harness_sha256": "ca299ef959655328fcaa5069fe3eff0aa3a95a7bd449b6f8a3673720d79911ba",
   "source_worktree_dirty": false,
   "images": {
     "jupyterhub-scientific-hub:0.1.0": "sha256:c26e9d6d35e9889c0cb0188f0f83ee545b9daa413caf62053f16ed308636c66f",
@@ -106,5 +108,5 @@
   "result": "passed",
   "fixture_resources_removed": true,
   "preexisting_containers_unchanged": true,
-  "finished_at": "2026-10-22T10:51:42.193407+00:00"
+  "finished_at": "2026-10-22T10:57:17.211363+00:00"
 }

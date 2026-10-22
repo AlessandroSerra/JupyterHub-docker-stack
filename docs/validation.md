@@ -8,11 +8,11 @@ See the [changelog](../CHANGELOG.md) and [migration guide](migration.md) for the
 
 ## Post-v0.1.0 development checks: 2026-10-22
 
-The post-release configuration passed an isolated macOS / Docker Desktop rehearsal on `linux/arm64`, Docker Engine **29.8.2**, Compose **5.6.0**. Source revision **`3ca4439`** was tested against baseline **`8bc65b9`** (`v0.1.0`). This is development validation, not a new release certification or proof of production security.
+The post-release configuration passed an isolated macOS / Docker Desktop rehearsal on `linux/arm64`, Docker Engine **29.8.2**, Compose **5.6.0**. Source revision **`36960b0`** was tested against baseline **`8bc65b9`** (`v0.1.0`). This is development validation, not a new release certification or proof of production security.
 
 The fixture used private temporary Hub/workspace storage, unique resource names, an unused test subnet, separate loopback ports, generated mkcert development certificates, and adapted copied configuration. Baseline Traefik's Docker provider was constrained to fixture labels. No production data was used. The normal deployment's container IDs, start times, and network attachments were unchanged afterward; fixture containers, networks, and successful-run storage were removed.
 
-Both project images were rebuilt with `docker build --pull --no-cache` under separate `validation-c116d68` tags. Build-context files were unchanged through the tested revision. Baseline/rollback used the retained original `0.1.0` image IDs; the upgrade stage used the rebuilt candidates. The normal deployment and original image tags were not updated. See [build commands and base digests](validation-builds-2026-10-22.json) and the [sanitized 59-check report](validation-rehearsal-2026-10-22.json) for exact image IDs, versions, source revision, and harness checksum.
+Both project images were rebuilt with `docker build --pull --no-cache` under separate `validation-c116d68` tags. Build-context files were unchanged through the tested revision. Baseline/rollback used the retained original `0.1.0` image IDs; the upgrade stage used the rebuilt candidates. The normal deployment and original image tags were not updated. See [build commands and base digests](validation-builds-2026-10-22.json) and the [sanitized 61-check report](validation-rehearsal-2026-10-22.json) for exact image IDs, versions, source revision, and harness checksum.
 
 | Check | Result |
 | --- | --- |
@@ -22,13 +22,14 @@ Both project images were rebuilt with `docker build --pull --no-cache` under sep
 | HTTP redirect and HTTPS certificate verification | Passed at baseline, upgrade, and rollback using fixture ports and the local mkcert CA |
 | Fresh administrator signup/login, admin page, and authenticated Hub API | Passed; credentials and API token survived upgrade, Hub restart, and snapshot rollback |
 | Fresh notebook spawning, OAuth redirects, and JupyterLab HTTP access | Passed |
-| Python, ROOT C++, and persistent custom-kernel execution through public WebSocket routes | Passed |
+| Python, ROOT C++, and persistent custom-kernel execution through HTTPS/WebSocket proxy routes | Passed |
 | Both scientific demo notebooks executed with graphical output data | Passed; not visually inspected in a browser |
 | Real Conda environment creation and helper registration | Passed; custom environment/kernel remained usable after migration, restart, and rollback |
 | Persistent workspace and stopped-notebook container removal | Passed across all lifecycle stages |
 | User-network recreation, separate proxy network, and Traefik without Docker socket | Confirmed in the fixture |
 | Traefik read-only root filesystem; notebook memory/CPU/process/capability settings | Confirmed by inspection; limits were not stress-tested |
 | Revised signup policy | Short password and invalid username rejected; unapproved non-admin signup accepted for review but login denied |
+| Five-failure login lockout | Five wrong passwords denied; the correct password was then denied during lockout |
 | Security headers and login rate limiting | Expected headers present; rapid login requests returned **429** |
 | Snapshot-based rollback | Original credentials/workspace/environment recovered; post-snapshot workspace file and Hub test user absent |
 | Gitleaks 8.24.3 over branch history and versioned-file snapshot | No leaks detected; automated scanning is not a guarantee |
@@ -39,7 +40,7 @@ Still pending:
 
 - Native Linux firewall behavior, inter-user and host/LAN isolation, host permissions, amd64 builds, and Linux-specific migration/restore; follow the [maintainer checklist](release-checklist.md#native-linux-validation--maintainer-action-required).
 - Visual browser inspection, concurrent-user/load tests, resource exhaustion, and long-running workloads.
-- Runtime verification of the five-failure/600-second login lockout policy (the configured values are unit-tested).
+- Timing of lockout expiration: the configured 600-second delay is unit-tested, but the full expiration interval was not timed.
 - Hosted GitHub Actions results for this branch, public TLS, and institution-specific deployment/recovery procedures.
 
 The historical Linux-container Python checks below were not rerun as such; the supported Python versions were tested natively on macOS. No release tag, default image reference, or running normal-deployment service was changed.

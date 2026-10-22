@@ -4,7 +4,7 @@
   "platform": "macOS / Docker Desktop, linux/arm64",
   "build_context_revision": "c116d68",
   "notes": [
-    "Build-context files were unchanged between c116d68 and rehearsal revision 3ca4439.",
+    "Build-context files were unchanged between c116d68 and rehearsal revision 36960b0.",
     "Project images were built under separate local validation tags; original 0.1.0 references were not overwritten.",
     "--no-cache reran project installation layers; upstream base images remain prebuilt binaries.",
     "Successful fresh installation does not establish dependency reproducibility or vulnerability freedom."
