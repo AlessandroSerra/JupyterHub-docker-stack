@@ -1,0 +1,14 @@
+[Unit]
+Description=JupyterHub user network isolation rules
+After=docker.service
+Requires=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/jhub-net-rules.sh start
+ExecStop=/usr/local/sbin/jhub-net-rules.sh stop
+
+[Install]
+WantedBy=multi-user.target

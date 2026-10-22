@@ -17,12 +17,12 @@ flowchart LR
 
 ### Design choices
 
-- **Per-user containers:** DockerSpawner creates notebook servers on the shared `jupyterhub_net` network and removes containers when servers stop.
+- **Per-user containers:** DockerSpawner creates notebook servers on the `jupyterhub_net` network and removes containers when servers stop. Traefik sits on a separate `proxy_net` with the Hub and cannot reach user containers.
 - **Persistent workspaces:** host directories are mounted at `/home/jovyan/work`; data survives container replacement.
 - **Persistent environments:** user Conda environments and package caches live inside the workspace.
 - **Scientific stack:** NumPy, SciPy, Matplotlib, pandas, SymPy, ipykernel, and ROOT are installed in the notebook image.
 - **Resource controls:** each notebook container is limited to 2 GB RAM and 1 CPU, with numerical-library thread counts set to one.
-- **Basic isolation:** notebook containers drop Linux capabilities, disable privilege escalation, and limit process counts.
+- **Basic isolation:** notebook containers drop Linux capabilities, disable privilege escalation, and limit process counts. On native Linux hosts, optional firewall rules block traffic between user containers and towards the host and LAN (see [Linux network isolation](#linux-network-isolation)).
 
 This repository captures a working deployment, not a production-hardened platform. See [security considerations](docs/operations.md#security-and-exposure) before exposing it to a network.
 
@@ -38,6 +38,8 @@ This repository captures a working deployment, not a production-hardened platfor
 | `notebooks/` | PyROOT and ROOT C++ demonstration notebooks |
 | `tests/` | Standard-library tests for the kernel helper and host storage mapping |
 | `docs/operations.md` | Administration, persistence, security, and troubleshooting |
+| `traefik/dynamic/jupyterhub.yml` | Static Traefik route, rate limit and security headers (Traefik has no Docker socket access) |
+| `linux_deploy/` | Linux-only network isolation (iptables script and systemd unit); not yet tested |
 
 ## Prerequisites
 
@@ -145,6 +147,28 @@ python3 -m unittest discover -s tests -v
 ```
 
 GitHub Actions also checks Python syntax and Compose structure. These are static/unit checks, not end-to-end verification of login, spawning, or ROOT installation.
+
+## Linux network isolation
+
+> **Status: untested.** The stack is developed and verified on macOS (Docker Desktop). The files in `linux_deploy/` require a native Linux Docker Engine host and must be validated on first deployment.
+
+Docker Desktop runs containers inside a VM, so host firewall rules cannot affect them. On native Linux, `linux_deploy/jhub-net-rules.sh` blocks traffic between user containers, from user containers to the host, LAN and cloud metadata addresses, and allows only the Hub API (tcp/8081) towards the Hub. Internet access stays open for conda and pip.
+
+1. Find your real DNS resolvers (`grep nameserver /etc/resolv.conf`, or `resolvectl status` if you see `127.0.0.53`) and set them in `DNS_SERVERS` inside the script. The script refuses to run until you do.
+2. Install the script and the unit, then enable it after the stack is up:
+
+```sh
+sudo install -m 755 linux_deploy/jhub-net-rules.sh /usr/local/sbin/jhub-net-rules.sh
+sudo install -m 644 linux_deploy/jhub-net-rules.service /etc/systemd/system/jhub-net-rules.service
+sudo systemctl daemon-reload
+docker compose up -d
+sudo systemctl enable --now jhub-net-rules.service
+sudo iptables -L JHUB-USERS -v -n
+```
+
+3. From a user's JupyterLab terminal, internet access must work while the Docker host (`172.30.250.1`) and the LAN gateway time out. Two throwaway containers on `jupyterhub_net` must not be able to ping each other.
+
+To roll back: `sudo systemctl disable --now jhub-net-rules.service`. If the `DOCKER-USER` chain does not exist, the host uses Docker's nftables backend and equivalent nft rules are needed. If you change the subnet, update `ipv4_address` in `compose.yml`, `HUB_IP` in `jupyterhub_config.py` and `HUB_IP` in the script.
 
 ## Operations and limitations
 

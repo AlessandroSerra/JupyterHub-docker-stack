@@ -1,15 +1,28 @@
 import os
 
+# Deve coincidere con ipv4_address del servizio jupyterhub in compose.yml
+HUB_IP = "172.30.250.10"
+
+USERS_ROOT = "/srv/jupyterhub/users"
+
+
 def create_user_dir_hook(spawner):
     username = spawner.user.name
-    user_dir = f"/srv/jupyterhub/users/{username}"
 
-    os.makedirs(user_dir, exist_ok=True)
+    # Difesa contro username con path traversal (es. "../hub"):
+    # la directory risolta deve stare direttamente sotto USERS_ROOT.
+    root = os.path.realpath(USERS_ROOT)
+    user_dir = os.path.realpath(os.path.join(root, username))
+    if os.path.dirname(user_dir) != root:
+        raise ValueError(f"Directory utente non valida per {username!r}")
+
+    os.makedirs(user_dir, mode=0o700, exist_ok=True)
 
     # UID/GID standard delle Jupyter Docker Stacks:
     # jovyan:users = 1000:100
     os.chown(user_dir, 1000, 100)
     os.chmod(user_dir, 0o700)
+
 
 c = get_config()
 
@@ -19,7 +32,7 @@ c.JupyterHub.cookie_secret_file = "/srv/jupyterhub/hub/jupyterhub_cookie_secret"
 c.JupyterHub.db_url = "sqlite:////srv/jupyterhub/hub/jupyterhub.sqlite"
 c.JupyterHub.log_level = "INFO"
 
-# Per ora non proviamo ad avviare subito un server notebook dopo il login
+# Non avviare subito un server notebook dopo il login
 c.JupyterHub.redirect_to_server = False
 
 # NativeAuthenticator
@@ -28,15 +41,17 @@ c.JupyterHub.authenticator_class = "nativeauthenticator.NativeAuthenticator"
 # Utente admin JupyterHub
 c.Authenticator.admin_users = {"jhubadmin"}
 
-# Per ora permettiamo esplicitamente solo questo utente
+# Utenti ammessi esplicitamente
 c.Authenticator.allowed_users = {"jhubadmin"}
 
-# Signup temporaneamente aperto per creare il primo admin
-# primo admin creato, chiudiamo open signup
+# Solo username "semplici": niente "/", "..", spazi, maiuscole
+c.Authenticator.username_pattern = r"^[a-z][a-z0-9_-]{1,31}$"
+
+# Signup chiuso: gli account li autorizza l'admin
 c.NativeAuthenticator.open_signup = False
 
-# Password policy base
-c.NativeAuthenticator.minimum_password_length = 8
+# Password policy
+c.NativeAuthenticator.minimum_password_length = 12
 c.NativeAuthenticator.check_common_password = True
 c.NativeAuthenticator.allowed_failed_logins = 5
 c.NativeAuthenticator.seconds_before_next_try = 600
@@ -48,18 +63,19 @@ c.DockerSpawner.image = "jupyterhub-scientific-notebook:0.1.0"
 c.DockerSpawner.network_name = "jupyterhub_net"
 c.DockerSpawner.use_internal_ip = True
 
-# Il container JupyterHub si chiama "jhub" sulla rete Docker
-c.JupyterHub.hub_ip = "jhub"
-c.JupyterHub.hub_connect_ip = "jhub"
+# L'API dell'Hub (porta 8081) ascolta solo sull'IP della rete utenti,
+# non sulla rete di Traefik.
+c.JupyterHub.hub_ip = HUB_IP
+c.JupyterHub.hub_connect_ip = HUB_IP
 
 # Directory di lavoro dentro il container studente
 notebook_dir = "/home/jovyan/work"
 c.DockerSpawner.notebook_dir = notebook_dir
 
-# hook per sistemare i permessi del bind mount
+# Sistema i permessi del bind mount
 c.Spawner.pre_spawn_hook = create_user_dir_hook
 
-# notebook environment variables
+# Variabili d'ambiente dei notebook
 c.DockerSpawner.environment = {
     "CONDA_ENVS_PATH": "/home/jovyan/work/.conda/envs",
     "CONDA_PKGS_DIRS": "/home/jovyan/work/.conda/pkgs",
@@ -70,16 +86,14 @@ c.DockerSpawner.environment = {
     "NUMEXPR_NUM_THREADS": "1",
 }
 
-# Docker resolves bind mounts on the host, not inside the Hub container.
-# The hook still uses /srv/jupyterhub/users, where Compose mounts this tree.
+# Docker risolve i bind mount sull'host, non dentro il container dell'Hub.
+# L'hook usa comunque /srv/jupyterhub/users, dove Compose monta questo albero.
 host_users_dir = os.environ.get("JUPYTERHUB_USERS_DIR", "/srv/jupyterhub/users")
 if not os.path.isabs(host_users_dir):
     raise ValueError("JUPYTERHUB_USERS_DIR must be an absolute host path")
-c.DockerSpawner.volumes = {
-    os.path.join(host_users_dir, "{username}"): notebook_dir
-}
+c.DockerSpawner.volumes = {os.path.join(host_users_dir, "{username}"): notebook_dir}
 
-# Rimuove il container quando lo studente stoppa il server.
+# Rimuove il container quando lo studente ferma il server.
 # I dati restano nel bind mount.
 c.DockerSpawner.remove = True
 
