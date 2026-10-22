@@ -6,14 +6,27 @@ A self-hosted JupyterHub deployment for a university-style scientific computing 
 
 ```mermaid
 flowchart LR
-    Browser[Browser] -->|HTTPS :8443| Traefik[Traefik]
-    Traefik -->|Docker network| Hub[JupyterHub proxy and Hub]
-    Hub --> Auth[NativeAuthenticator]
-    Hub -->|DockerSpawner via Docker socket| Lab[Per-user JupyterLab container]
-    Lab -->|Hub API| Hub
-    Hub --- State[Host: /srv/jupyterhub/hub]
-    Lab --- Data[Host: /srv/jupyterhub/users/username]
+    Browser[Browser] -->|HTTPS localhost:8443| Traefik[Traefik]
+
+    subgraph HubContainer["JupyterHub container"]
+        Proxy[JupyterHub proxy]
+        Hub["Hub + NativeAuthenticator + DockerSpawner"]
+    end
+
+    Traefik -->|HTTP :8000 / jupyterhub_proxy_net| Proxy
+    Proxy -->|Hub routes / HTTP :8081| Hub
+    Proxy -->|Notebook HTTP and WebSocket / jupyterhub_net| Lab[Per-user JupyterLab container]
+    Lab -->|Hub API :8081 / jupyterhub_net| Hub
+
+    Hub -.->|Docker API via /var/run/docker.sock| Docker[Host Docker daemon]
+    Docker -.->|Create and remove| Lab
+
+    Hub --- State["Host state: /srv/jupyterhub/hub"]
+    Hub ---|Manage user-directory permissions| Users["Host workspaces: /srv/jupyterhub/users"]
+    Users ---|Per-user bind mount at /home/jovyan/work| Lab
 ```
+
+Solid arrows show application traffic; dotted arrows show container lifecycle management. Undirected lines show bind mounts. NativeAuthenticator and DockerSpawner run within the Hub process; the proxy runs in the same container. Traefik only joins `jupyterhub_proxy_net` and has no Docker socket access. The Hub container also joins `jupyterhub_net` to reach notebook servers. Storage paths shown are host defaults, configurable through `JUPYTERHUB_HUB_DIR` and `JUPYTERHUB_USERS_DIR`; each notebook mounts only its own user subdirectory.
 
 ### Design choices
 
