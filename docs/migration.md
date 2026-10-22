@@ -1,6 +1,6 @@
 # Migrating from v0.1.0 to post-release development
 
-These instructions describe the changes from Git tag `v0.1.0` (`8bc65b9`) to the current post-release configuration. They are a maintenance plan, not a tested migration procedure or a new release announcement. Rehearse the upgrade and rollback on a separate host before using valuable data.
+These instructions describe the changes from Git tag `v0.1.0` (`8bc65b9`) to the current post-release configuration. The procedure passed an [isolated Docker Desktop rehearsal](validation.md#post-v010-development-checks-2026-10-22) using disposable storage, adapted resource names/addresses, and separately rebuilt candidate images. This is not a new release announcement, proof of a safe in-place production upgrade, or native Linux validation. Rehearse the upgrade and rollback on a separate host before using valuable data.
 
 ## What changes
 
@@ -68,4 +68,4 @@ The existing network cannot simply acquire the new IPAM subnet and bridge option
 3. Restore the old checkout and reviewed local configuration, retained image contents, and consistent Hub/workspace backups as required by the recovery plan. Restore the two data trees consistently; restoring a snapshot discards subsequent changes, so preserve newer user work separately first. Do not assume a rebuilt image is equivalent to the original.
 4. Start the old deployment and repeat login, spawning, kernel, and persistence checks. Reverting to `v0.1.0` also restores its Docker socket exposure in Traefik, shared network, and older account policy; keep access restricted during recovery.
 
-Upgrade and rollback remain unvalidated end-to-end. Record the exact commits, image IDs, platform, results, and any deviations when rehearsing this plan.
+The isolated Docker Desktop rehearsal verified upgrade, restart, and snapshot-based rollback, including removal of post-snapshot workspace and Hub state. Native Linux and site-specific recovery procedures remain unvalidated; follow the [maintainer checklist](release-checklist.md#native-linux-validation--maintainer-action-required). Record the exact commits, image IDs, platform, results, and any deviations when rehearsing this plan.

@@ -6,7 +6,7 @@ A self-hosted JupyterHub deployment for a university-style scientific computing 
 
 The latest tagged repository release is **`v0.1.0`** (`8bc65b9`). The architecture and configuration described in this checkout include **unreleased changes after that tag**; they are not a description of the original release. In `v0.1.0`, Traefik shared the notebook network and mounted the Docker socket; the current configuration separates the proxy network and removes Traefik's socket access.
 
-See the [changelog](CHANGELOG.md), [migration guide](docs/migration.md), and [validation status](docs/validation.md) before upgrading. No subsequent release version has been assigned. A complete smoke test of the post-release changes and native Linux validation are still pending.
+See the [changelog](CHANGELOG.md), [migration guide](docs/migration.md), and [validation status](docs/validation.md) before upgrading. No subsequent release version has been assigned. An isolated Docker Desktop smoke, migration, and snapshot-based rollback rehearsal passed with separately rebuilt candidate images; native Linux validation remains pending. The [release checklist](docs/release-checklist.md) tracks remaining work.
 
 ## Architecture
 

@@ -4,11 +4,13 @@ No new version or tag is assigned by this checklist. The latest released deploym
 
 ## Automated and Docker Desktop checks
 
-- [ ] Unit tests pass on the supported Python 3.10/3.12 CI matrix.
-- [ ] Python syntax, notebook structure, Compose configuration, cross-file configuration contracts, and Bash syntax pass.
-- [ ] The [opt-in isolated rehearsal](../tests/integration/README.md) passes and its sanitized results are reviewed.
-- [ ] Record the source/target commits, test-fixture adaptations, platform, and actual image IDs. Distinguish existing-image testing from clean builds.
-- [ ] Review [validation evidence](validation.md) and clearly list untested behavior. Inspect browser rendering separately if visual correctness is part of the release claim.
+- [x] All 22 local unit tests pass on Python 3.10.20, 3.12.13, and 3.14.6 (macOS).
+- [x] Python syntax, notebook structure, Compose configuration, cross-file configuration contracts, and Bash syntax pass.
+- [x] The [opt-in isolated rehearsal](../tests/integration/README.md) passes: [59 checks](validation-rehearsal-2026-10-22.json), including migration and snapshot rollback.
+- [x] Record source/target commits, fixture adaptations, platform, image IDs, and [uncached candidate-build provenance](validation-builds-2026-10-22.json).
+- [x] Separate historical and current [validation evidence](validation.md), including explicit untested behavior.
+- [ ] Confirm hosted Python 3.10/3.12 CI results after pushing; the local matrix does not establish GitHub Actions status.
+- [ ] Inspect browser rendering separately if visual correctness is part of the release claim.
 
 ## Native Linux validation — maintainer action required
 

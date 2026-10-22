@@ -327,6 +327,18 @@ class Rehearsal:
         statuses = [self.session.get(self.url + "/hub/login", timeout=10).status_code for _ in range(30)]
         self.check("current: login rate limit returns 429", 429 in statuses)
 
+    def lockout(self):
+        # Run last on the candidate: this deliberately locks the disposable admin.
+        for _ in range(5):
+            self.session = requests.Session()
+            self.session.trust_env = False
+            self.session.verify = str(self.ca)
+            response = self.form("/hub/login", {"username": "jhubadmin", "password": "incorrect-" + secrets.token_urlsafe(16)})
+            assert "/hub/login" in response.url, "Invalid password unexpectedly authenticated"
+        self.check("current: five invalid administrator logins denied")
+        response = self.form("/hub/login", {"username": "jhubadmin", "password": self.password})
+        self.check("current: correct password denied during login lockout", "/hub/login" in response.url)
+
     def teardown(self):
         # Remove only resources with this randomly generated run's ownership label.
         ids = self.notebook_ids()
@@ -374,6 +386,7 @@ class Rehearsal:
             self.spawn("restart")
             self.persistence("restart")
             self.stop_notebook("restart")
+            self.lockout()
             self.compose("down")
             for name in ("hub", "users"):
                 shutil.rmtree(self.work / name)

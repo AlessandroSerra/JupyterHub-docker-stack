@@ -8,27 +8,41 @@ See the [changelog](../CHANGELOG.md) and [migration guide](migration.md) for the
 
 ## Post-v0.1.0 development checks: 2026-10-22
 
-The following limited checks were performed locally on macOS / Docker Desktop after the network and Traefik changes. They do not constitute a new release certification.
+The post-release configuration passed an isolated macOS / Docker Desktop rehearsal on `linux/arm64`, Docker Engine **29.8.2**, Compose **5.6.0**. Source revision **`3ca4439`** was tested against baseline **`8bc65b9`** (`v0.1.0`). This is development validation, not a new release certification or proof of production security.
+
+The fixture used private temporary Hub/workspace storage, unique resource names, an unused test subnet, separate loopback ports, generated mkcert development certificates, and adapted copied configuration. Baseline Traefik's Docker provider was constrained to fixture labels. No production data was used. The normal deployment's container IDs, start times, and network attachments were unchanged afterward; fixture containers, networks, and successful-run storage were removed.
+
+Both project images were rebuilt with `docker build --pull --no-cache` under separate `validation-c116d68` tags. Build-context files were unchanged through the tested revision. Baseline/rollback used the retained original `0.1.0` image IDs; the upgrade stage used the rebuilt candidates. The normal deployment and original image tags were not updated. See [build commands and base digests](validation-builds-2026-10-22.json) and the [sanitized 59-check report](validation-rehearsal-2026-10-22.json) for exact image IDs, versions, source revision, and harness checksum.
 
 | Check | Result |
 | --- | --- |
-| Local Python 3.14 unit tests | All 15 passed after updating the directory-mode assertion |
-| Python syntax, notebook structure, Compose configuration, and Bash syntax | Passed |
-| Hub and Traefik runtime status | Running; existing administrator notebook container reported healthy |
-| HTTP request to `/hub/login` on port 8000 | **301** to `https://localhost:8443/hub/login` |
-| HTTPS request to `/hub/login` on port 8443 | **200**, certificate verified using the local mkcert CA |
-| Inspected service network memberships | Traefik on `jupyterhub_proxy_net`; Hub on both networks |
-| Inspected Traefik mounts | Dynamic configuration and certificates only; no Docker socket |
+| Unit tests on local Python 3.10.20, 3.12.13, and 3.14.6 | **22/22 passed** on each version |
+| Python syntax, notebook structure, Compose/Hub/firewall contracts, and Bash syntax | Passed |
+| Fresh project image builds with project-layer cache disabled | Both passed |
+| HTTP redirect and HTTPS certificate verification | Passed at baseline, upgrade, and rollback using fixture ports and the local mkcert CA |
+| Fresh administrator signup/login, admin page, and authenticated Hub API | Passed; credentials and API token survived upgrade, Hub restart, and snapshot rollback |
+| Fresh notebook spawning, OAuth redirects, and JupyterLab HTTP access | Passed |
+| Python, ROOT C++, and persistent custom-kernel execution through public WebSocket routes | Passed |
+| Both scientific demo notebooks executed with graphical output data | Passed; not visually inspected in a browser |
+| Real Conda environment creation and helper registration | Passed; custom environment/kernel remained usable after migration, restart, and rollback |
+| Persistent workspace and stopped-notebook container removal | Passed across all lifecycle stages |
+| User-network recreation, separate proxy network, and Traefik without Docker socket | Confirmed in the fixture |
+| Traefik read-only root filesystem; notebook memory/CPU/process/capability settings | Confirmed by inspection; limits were not stress-tested |
+| Revised signup policy | Short password and invalid username rejected; unapproved non-admin signup accepted for review but login denied |
+| Security headers and login rate limiting | Expected headers present; rapid login requests returned **429** |
+| Snapshot-based rollback | Original credentials/workspace/environment recovered; post-snapshot workspace file and Hub test user absent |
+| Gitleaks 8.24.3 over branch history and versioned-file snapshot | No leaks detected; automated scanning is not a guarantee |
 
-Still pending for the post-release configuration:
+Resolved candidate versions include Hub **5.4.4**, DockerSpawner **14.0.0**, NativeAuthenticator **1.3.0**, notebook-side JupyterHub **5.3.0**, JupyterLab **4.4.5**, Jupyter Server **2.16.0**, and ROOT **6.40.04**. The Hub/single-user version difference remains present and should be reviewed on upgrades. Fresh builds succeeded, but dependencies remain unlocked; this does not establish reproducible builds or vulnerability freedom.
 
-- Fresh administrator login and notebook creation, HTTP/WebSocket traffic, scientific kernels, custom environment registration, and full stop/restart persistence checks over HTTPS.
-- Effective rate-limit behavior, security headers, and enforcement of the revised account policy.
-- Native Linux firewall behavior, inter-user and host/LAN isolation, host permissions, and amd64 builds.
-- Upgrade from `v0.1.0`, rollback, and backup restoration rehearsals.
-- Concurrent-user, resource-exhaustion, and long-running workload tests.
+Still pending:
 
-The historical Python 3.10/3.12 container checks and secret scans below were not repeated as part of this post-release review. No release tag or project image version was changed.
+- Native Linux firewall behavior, inter-user and host/LAN isolation, host permissions, amd64 builds, and Linux-specific migration/restore; follow the [maintainer checklist](release-checklist.md#native-linux-validation--maintainer-action-required).
+- Visual browser inspection, concurrent-user/load tests, resource exhaustion, and long-running workloads.
+- Runtime verification of the five-failure/600-second login lockout policy (the configured values are unit-tested).
+- Hosted GitHub Actions results for this branch, public TLS, and institution-specific deployment/recovery procedures.
+
+The historical Linux-container Python checks below were not rerun as such; the supported Python versions were tested natively on macOS. No release tag, default image reference, or running normal-deployment service was changed.
 
 ## Historical validation for v0.1.0
 

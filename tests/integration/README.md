@@ -1,6 +1,6 @@
 # Opt-in Docker Desktop rehearsal
 
-This suite starts a disposable deployment from Git tag `v0.1.0`, creates an administrator and notebook server, writes persistent data and a real Conda environment, upgrades the fixture to the current checkout, restarts it, then restores the baseline snapshot and rolls back. It exercises HTTPS, OAuth session cookies, Python/ROOT/custom-kernel WebSockets, demo notebook execution, account restrictions, rate limiting, container settings, and persistence.
+This suite starts a disposable deployment from Git tag `v0.1.0`, creates an administrator and notebook server, writes persistent data and a real Conda environment, upgrades the fixture to the current checkout, restarts it, then restores the baseline snapshot and rolls back. It exercises HTTPS, OAuth session cookies, Python/ROOT/custom-kernel WebSockets, demo notebook execution, account restrictions, five-failure login lockout, rate limiting, container settings, and persistence. Lockout is exercised only against the disposable administrator, after the candidate lifecycle checks; rollback restores the baseline state.
 
 It is **not** part of normal unit tests or automatic CI. It requires a local Docker daemon with spare resources, Python 3.12+, `uv`, `mkcert`, the existing mkcert CA, network access for Conda, and these already-built images:
 

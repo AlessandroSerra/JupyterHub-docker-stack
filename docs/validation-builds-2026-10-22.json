@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-22",
+  "result": "passed",
+  "platform": "macOS / Docker Desktop, linux/arm64",
+  "build_context_revision": "c116d68",
+  "notes": [
+    "Build-context files were unchanged between c116d68 and rehearsal revision 3ca4439.",
+    "Project images were built under separate local validation tags; original 0.1.0 references were not overwritten.",
+    "--no-cache reran project installation layers; upstream base images remain prebuilt binaries.",
+    "Successful fresh installation does not establish dependency reproducibility or vulnerability freedom."
+  ],
+  "images": {
+    "hub": {
+      "command": "docker build --pull --no-cache -t jupyterhub-scientific-hub:validation-c116d68 ./jupyterhub",
+      "base": "jupyterhub/jupyterhub:5.4.4-3",
+      "base_digest": "sha256:eaf5ab9de7851cd331cd4b854f1876c2863855b64775e6dce75d7e27174557c4",
+      "image_id": "sha256:5765e87ca797d968186585e2ff8f748e6eec1f80719a36acb2c22efbc9030c43"
+    },
+    "notebook": {
+      "command": "docker build --pull --no-cache -t jupyterhub-scientific-notebook:validation-c116d68 ./singleuser",
+      "base": "quay.io/jupyter/minimal-notebook:python-3.12",
+      "base_digest": "sha256:5b868d38f2b454cb22abb077052d341d3d7aeec2315c296c44de3b1278425782",
+      "image_id": "sha256:26bdcd059c1d59f0021de8c4096bd50745b1b36526141b244f85f944342a7040"
+    }
+  }
+}
