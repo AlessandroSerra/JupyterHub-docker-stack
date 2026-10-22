@@ -2,6 +2,12 @@
 
 A self-hosted JupyterHub deployment for a university-style scientific computing environment. Each user gets an isolated JupyterLab container with scientific Python and CERN ROOT, while notebooks and user-created Conda environments persist on the host.
 
+## Release and development status
+
+The latest tagged repository release is **`v0.1.0`** (`8bc65b9`). The architecture and configuration described in this checkout include **unreleased changes after that tag**; they are not a description of the original release. In `v0.1.0`, Traefik shared the notebook network and mounted the Docker socket; the current configuration separates the proxy network and removes Traefik's socket access.
+
+See the [changelog](CHANGELOG.md), [migration guide](docs/migration.md), and [validation status](docs/validation.md) before upgrading. No subsequent release version has been assigned. A complete smoke test of the post-release changes and native Linux validation are still pending.
+
 ## Architecture
 
 ```mermaid
@@ -51,6 +57,8 @@ This repository captures a working deployment, not a production-hardened platfor
 | `notebooks/` | PyROOT and ROOT C++ demonstration notebooks |
 | `tests/` | Standard-library tests for the kernel helper and host storage mapping |
 | `docs/operations.md` | Administration, persistence, security, and troubleshooting |
+| `docs/migration.md` | Upgrade and rollback plan from `v0.1.0` to post-release development |
+| `CHANGELOG.md` | Tagged releases and unreleased repository changes |
 | `traefik/dynamic/jupyterhub.yml` | Static Traefik route, rate limit and security headers (Traefik has no Docker socket access) |
 | `deploy_linux/` | Linux-only network isolation (iptables script and systemd unit); not yet tested |
 
@@ -85,7 +93,7 @@ Traefik loads the certificate paths from `traefik/dynamic/tls.yml`. This is deve
 
 ### Start the services
 
-Run from the repository root. Compose references local image tags rather than building images automatically:
+Run from the repository root. For an existing `v0.1.0` installation, follow the [migration guide](docs/migration.md) first: the changed network must be recreated after stopping notebook servers. Compose references local image tags rather than building images automatically:
 
 ```sh
 docker build -t jupyterhub-scientific-hub:0.1.0 ./jupyterhub
@@ -116,7 +124,9 @@ Create those directories instead of the `/srv` directories above. Ensure Docker 
 
 The notebook image tag used by DockerSpawner is configured in `jupyterhub/jupyterhub_config.py`, not in Compose. When changing image tags, update the corresponding configuration too.
 
-Dependencies in the notebook image are not version-locked, and its base tag can change upstream. Rebuilding the same tag is not guaranteed to produce identical contents. Both project images use release tag `0.1.0`; upstream packages keep their own versions. This identifies the PoC release, not production readiness or reproducible builds.
+Both project image references still use `0.1.0`; these image tags do **not** identify the repository revision or prove that the deployment matches Git tag `v0.1.0`. Compose and bind-mounted Hub/Traefik configuration can change without changing image tags. Record the deployed commit, local configuration changes, and actual image IDs/digests together.
+
+Dependencies in the notebook image are not version-locked, and its base tag can change upstream. Rebuilding the same tag is not guaranteed to produce identical contents. Image tags and repository release labels do not imply production readiness or reproducible builds; upstream packages keep their own versions.
 
 ## Scientific computing demos
 

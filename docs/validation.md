@@ -1,18 +1,52 @@
 # Infrastructure validation
 
-## Project release: 0.1.0
+## Validation scope
+
+The current checkout includes unreleased changes after Git tag `v0.1.0` (`8bc65b9`). Historical results below describe the initial release baseline, not end-to-end validation of the new proxy network, file-based routing, hardening, or optional Linux firewall. Unchanged `0.1.0` image tags do not make different repository revisions equivalent; record the commit, local configuration, and image IDs/digests with each test run.
+
+See the [changelog](../CHANGELOG.md) and [migration guide](migration.md) for the changes and upgrade plan.
+
+## Post-v0.1.0 development checks: 2026-10-22
+
+The following limited checks were performed locally on macOS / Docker Desktop after the network and Traefik changes. They do not constitute a new release certification.
+
+| Check | Result |
+| --- | --- |
+| Local Python 3.14 unit tests | All 15 passed after updating the directory-mode assertion |
+| Python syntax, notebook structure, Compose configuration, and Bash syntax | Passed |
+| Hub and Traefik runtime status | Running; existing administrator notebook container reported healthy |
+| HTTP request to `/hub/login` on port 8000 | **301** to `https://localhost:8443/hub/login` |
+| HTTPS request to `/hub/login` on port 8443 | **200**, certificate verified using the local mkcert CA |
+| Inspected service network memberships | Traefik on `jupyterhub_proxy_net`; Hub on both networks |
+| Inspected Traefik mounts | Dynamic configuration and certificates only; no Docker socket |
+
+Still pending for the post-release configuration:
+
+- Fresh administrator login and notebook creation, HTTP/WebSocket traffic, scientific kernels, custom environment registration, and full stop/restart persistence checks over HTTPS.
+- Effective rate-limit behavior, security headers, and enforcement of the revised account policy.
+- Native Linux firewall behavior, inter-user and host/LAN isolation, host permissions, and amd64 builds.
+- Upgrade from `v0.1.0`, rollback, and backup restoration rehearsals.
+- Concurrent-user, resource-exhaustion, and long-running workload tests.
+
+The historical Python 3.10/3.12 container checks and secret scans below were not repeated as part of this post-release review. No release tag or project image version was changed.
+
+## Historical validation for v0.1.0
+
+The remaining dated records cover the baseline leading to Git tag `v0.1.0`, which used a single shared network and Traefik's Docker provider/socket mount. The initial HTTP smoke test preceded the HTTPS follow-up. These records are retained as historical evidence and must not be read as validation of later changes.
+
+### Project image labels: 0.1.0
 
 The release uses `jupyterhub-scientific-hub:0.1.0` and `jupyterhub-scientific-notebook:0.1.0`. The local images used for the tests below were retagged without rebuilding; Docker image IDs were verified identical before and after renaming. These release labels do not change the recorded upstream runtime versions.
 
 Compose validation and all 15 unit tests passed after updating the image references. Existing notebook sessions were not restarted solely to change their displayed image names; new containers use the release tags after the Hub reloads its configuration.
 
-## Smoke test: 2026-10-14
+### Smoke test: 2026-10-14
 
 The deployment was built and exercised locally on macOS / Apple Silicon using Docker Desktop **4.95.0**, Docker Engine **29.8.2**, and Compose **5.6.0**. Containers ran natively as `linux/arm64`.
 
 This initial smoke test predates the HTTPS configuration and used HTTP. It used a separate Compose project, fresh storage under the tester's home directory, and loopback-only published ports. It did not use a production database or workspace. The committed authentication configuration was used with `open_signup = False`.
 
-### Verified
+#### Verified
 
 | Check | Result |
 | --- | --- |
@@ -38,7 +72,7 @@ This initial smoke test predates the HTTPS configuration and used HTTP. It used 
 
 Resolved runtime versions included JupyterHub **5.4.4** in the Hub, JupyterHub **5.3.0** in the notebook image, JupyterLab **4.4.5**, Jupyter Server **2.16.0**, and ROOT **6.40.04**. The Hub/single-user version difference did not prevent the tested workflow; it should still be reviewed when upgrading. Builds are not dependency-locked, so future rebuilds may resolve differently.
 
-### Changes resulting from testing
+#### Changes resulting from testing
 
 1. Host storage paths are now configurable through `JUPYTERHUB_HUB_DIR` and `JUPYTERHUB_USERS_DIR`. Defaults remain `/srv/jupyterhub/hub` and `/srv/jupyterhub/users`. DockerSpawner receives the host users path rather than incorrectly using the Hub's internal path when storage is relocated.
 2. `JUPYTER_PATH` includes the persistent kernelspec directory. Before this fix, registration succeeded but the kernel was not discovered by Jupyter.
@@ -46,7 +80,7 @@ Resolved runtime versions included JupyterHub **5.4.4** in the Hub, JupyterHub *
 
 Unit tests cover storage mapping and kernel registration without requiring Docker. CI checks do not automatically reproduce this full runtime smoke test.
 
-## Local HTTPS follow-up: 2026-10-14
+### Local HTTPS follow-up: 2026-10-14
 
 After configuring Traefik TLS and recreating the services, the following were verified against the running deployment:
 
@@ -63,7 +97,7 @@ The user also confirmed the browser workflow and certificate trust work after en
 
 These certificates are locally trusted development certificates, not public production certificates. No certificate-verification bypass was used for the HTTPS check.
 
-## Pre-publication checks: 2026-10-14
+### Pre-publication checks: 2026-10-14
 
 - All **15 unit tests**, Python syntax checks, and notebook structure checks passed in clean Python **3.10.22** and **3.12.15** containers, matching the workflow's Python version matrix.
 - Compose configuration and local documentation links validated successfully.
@@ -73,9 +107,9 @@ These certificates are locally trusted development certificates, not public prod
 
 No commit, staging, or push was performed during this pass.
 
-## Scope and limitations
+### Historical scope and limitations
 
-This is a functional smoke test, not proof of production security or reliability. The following were **not** validated:
+The historical record is a functional smoke test, not proof of production security or reliability. The following were **not** validated:
 
 - Native Linux host permissions or amd64 builds.
 - Multiple simultaneous users, load, or long-running workloads.

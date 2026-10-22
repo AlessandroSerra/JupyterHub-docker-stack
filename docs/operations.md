@@ -1,5 +1,7 @@
 # Operations guide
 
+This guide describes the current checkout, including unreleased changes after `v0.1.0`. For differences from the tagged release and maintenance steps, see the [changelog](../CHANGELOG.md) and [migration guide](migration.md).
+
 ## Account administration
 
 The committed policy in `jupyterhub/jupyterhub_config.py` is deliberately narrow:
@@ -60,10 +62,12 @@ Compose does not have `build:` declarations. Build the Hub and notebook images e
 
 - Hub image reference: `compose.yml`.
 - Notebook image reference: `jupyterhub/jupyterhub_config.py`.
-- Current project release: `jupyterhub-scientific-hub:0.1.0` and `jupyterhub-scientific-notebook:0.1.0`.
+- Current configured image references: `jupyterhub-scientific-hub:0.1.0` and `jupyterhub-scientific-notebook:0.1.0`. These are image tags, not identifiers for the current deployment configuration.
 - Match build tags to these references; do not update one without the other.
 - Recreate the Hub after a Hub image update: `docker compose up -d --force-recreate jupyterhub`.
 - Stop and restart notebook servers to pick up a new notebook image. Existing running containers retain their current image.
+
+Record the repository commit, local overrides, and actual image IDs/digests for each deployment. Hub configuration and Traefik dynamic files are bind-mounted, so image tags alone do not capture runtime behavior. Network changes require a separate maintenance procedure; see [migration from v0.1.0](migration.md).
 
 Back up persistent state before upgrading Hub/authenticator versions because database migrations may affect rollback. Review upstream compatibility and release notes. Future reproducibility work can pin image digests and Conda dependencies after verifying the working environment.
 
