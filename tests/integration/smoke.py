@@ -241,6 +241,8 @@ class Rehearsal:
         host = state["HostConfig"]
         self.check(stage + ": notebook security/resource settings", host["Memory"] == 2 * 1024**3 and host["CpuQuota"] / host["CpuPeriod"] == 1 and host["PidsLimit"] == 1024 and "ALL" in host["CapDrop"] and any("no-new-privileges" in opt for opt in host["SecurityOpt"]))
         self.check(stage + ": notebook only on isolated user network", set(state["NetworkSettings"]["Networks"]) == {self.user_net})
+        if stage == "current":
+            self.report["notebook_packages"] = json.loads(self.exec_notebook("import importlib.metadata as m, json, ROOT\nversions = {n:m.version(n) for n in ['jupyterhub','jupyterlab','jupyter-server','numpy','scipy','matplotlib','pandas','sympy','ipykernel']}\nversions['ROOT'] = ROOT.gROOT.GetVersion()\nprint(json.dumps(versions))\n"))
 
     def exec_notebook(self, code, timeout=300):
         return run("docker", "exec", "-i", self.notebook(), "python", "-", input=code, timeout=timeout)
@@ -359,6 +361,9 @@ class Rehearsal:
             self.kernel("current", "root", 'std::cout << "websocket-smoke-ok" << std::endl;')
             self.scientific_demos()
             self.persistence("current")
+            self.exec_notebook("from pathlib import Path\nPath('/home/jovyan/work/current-only.txt').write_text('not-in-baseline-snapshot')\n")
+            self.api("POST", "/hub/api/users/rollbackprobe", json={})
+            self.check("current: post-snapshot workspace and Hub state created")
             self.policies()
             # Let the configured login limiter refill before testing a new login.
             time.sleep(65)
@@ -377,6 +382,9 @@ class Rehearsal:
             self.login("rollback")
             self.spawn("rollback")
             self.persistence("rollback")
+            self.exec_notebook("from pathlib import Path\nassert not Path('/home/jovyan/work/current-only.txt').exists()\n")
+            probe = self.session.get(self.url + "/hub/api/users/rollbackprobe", headers={"Authorization": "token " + self.token}, timeout=20)
+            self.check("rollback: post-snapshot workspace and Hub state absent", probe.status_code == 404)
             self.stop_notebook("rollback")
             self.report["result"] = "passed"
         except Exception as error:
