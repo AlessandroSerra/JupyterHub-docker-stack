@@ -8,6 +8,7 @@ Existing image contents are reused, not rebuilt. No native Linux firewall change
 import argparse
 from datetime import datetime, timezone
 import io
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -49,7 +50,7 @@ def free_port():
 
 
 class Rehearsal:
-    def __init__(self, report):
+    def __init__(self, report, hub_image, notebook_image):
         self.report_path = report
         self.project = "jhub-check-" + secrets.token_hex(4)
         # macOS /var temporary-directory aliases are unsuitable for daemon bind mounts.
@@ -67,9 +68,13 @@ class Rehearsal:
         self.token = None
         self.compose_file = None
         self.session = None
-        self.report = {"started_at": datetime.now(timezone.utc).isoformat(), "baseline_commit": run("git", "rev-parse", "v0.1.0^{commit}"), "project": self.project, "source_commit": run("git", "rev-parse", "HEAD"), "checks": [], "limitations": ["Existing local image contents reused; no clean rebuild", "No native Linux firewall or permissions validation", "No visual browser inspection, load testing, or resource-exhaustion testing", "Fixture changes names, subnet, ports, TLS paths, and spawner prefix for isolation"]}
+        self.report = {"started_at": datetime.now(timezone.utc).isoformat(), "baseline_commit": run("git", "rev-parse", "v0.1.0^{commit}"), "project": self.project, "source_commit": run("git", "rev-parse", "HEAD"), "checks": [], "limitations": ["Build provenance is separate; the harness does not build images", "No native Linux firewall or permissions validation", "No visual browser inspection, load testing, or resource-exhaustion testing", "Fixture changes names, subnet, ports, TLS paths, and spawner prefix for isolation"]}
+        self.report["harness_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+        self.report["source_worktree_dirty"] = bool(run("git", "status", "--porcelain"))
         self.original = self.snapshot()
         self.report["images"] = {name: inspect("image", name)["Id"] for name in ("jupyterhub-scientific-hub:0.1.0", "jupyterhub-scientific-notebook:0.1.0", "traefik:v3.7")}
+        self.report["candidate_images"] = {"hub": inspect("image", hub_image)["Id"], "notebook": inspect("image", notebook_image)["Id"]}
+        self.report["platform"] = {"docker_engine": run("docker", "version", "--format", "{{.Server.Version}}"), "compose": run("docker", "compose", "version", "--short"), "architecture": inspect("image", notebook_image)["Architecture"]}
         self.ca = Path(run("mkcert", "-CAROOT")) / "rootCA.pem"
         self.cert_dir = self.work / "certs"
         self.cert_dir.mkdir()
@@ -117,7 +122,8 @@ class Rehearsal:
         else:
             cfg = cfg.replace('= "jhub"', '= "jupyterhub"')
         cfg += "\n# Disposable integration-fixture overrides; never used by the live deployment.\n"
-        cfg += f"c.DockerSpawner.network_name = {self.user_net!r}\nc.DockerSpawner.image = {self.report['images']['jupyterhub-scientific-notebook:0.1.0']!r}\nc.DockerSpawner.prefix = {self.project + '-notebook'!r}\nc.DockerSpawner.extra_create_kwargs = {{'labels': {{{LABEL!r}: {self.project!r}}}}}\n"
+        notebook_image = self.report['candidate_images']['notebook'] if modern else self.report['images']['jupyterhub-scientific-notebook:0.1.0']
+        cfg += f"c.DockerSpawner.network_name = {self.user_net!r}\nc.DockerSpawner.image = {notebook_image!r}\nc.DockerSpawner.prefix = {self.project + '-notebook'!r}\nc.DockerSpawner.extra_create_kwargs = {{'labels': {{{LABEL!r}: {self.project!r}, {LABEL + '.role'!r}: 'notebook'}}}}\n"
         config_path = directory / "jupyterhub_config.py"
         config_path.write_text(cfg)
         dynamic = directory / "dynamic"
@@ -127,7 +133,7 @@ class Rehearsal:
             route.write_text(route.read_text().replace("http://jhub:8000", "http://jupyterhub:8000"))
         spec = yaml.safe_load((source / "compose.yml").read_text())
         hub, traefik = spec["services"]["jupyterhub"], spec["services"]["traefik"]
-        hub["image"] = self.report["images"]["jupyterhub-scientific-hub:0.1.0"]
+        hub["image"] = self.report["candidate_images"]["hub"] if modern else self.report["images"]["jupyterhub-scientific-hub:0.1.0"]
         traefik["image"] = self.report["images"]["traefik:v3.7"]
         hub["container_name"], traefik["container_name"] = self.hub, self.project + "-traefik"
         for service in (hub, traefik):
@@ -197,8 +203,11 @@ class Rehearsal:
         response.raise_for_status()
         return response
 
+    def notebook_ids(self):
+        return run("docker", "ps", "-aq", "--filter", f"label={LABEL}={self.project}", "--filter", f"label={LABEL}.role=notebook").split()
+
     def notebook(self):
-        ids = run("docker", "ps", "-aq", "--filter", f"label={LABEL}={self.project}").split()
+        ids = self.notebook_ids()
         assert len(ids) == 1, "Expected one isolated notebook container"
         return ids[0]
 
@@ -276,7 +285,7 @@ class Rehearsal:
     def stop_notebook(self, stage):
         self.api("DELETE", "/hub/api/users/jhubadmin/server")
         for _ in range(60):
-            if not run("docker", "ps", "-aq", "--filter", f"label={LABEL}={self.project}"):
+            if not self.notebook_ids():
                 self.check(stage + ": stopped notebook container removed")
                 return
             time.sleep(1)
@@ -303,11 +312,14 @@ class Rehearsal:
 
     def teardown(self):
         # Remove only resources with this randomly generated run's ownership label.
-        ids = run("docker", "ps", "-aq", "--filter", f"label={LABEL}={self.project}").split()
+        ids = self.notebook_ids()
         if ids:
             run("docker", "rm", "-f", *ids)
         if self.compose_file:
             self.compose("down")
+        assert not run("docker", "ps", "-aq", "--filter", f"label={LABEL}={self.project}"), "Fixture containers remain"
+        networks = run("docker", "network", "ls", "--format", "{{.Name}}").splitlines()
+        assert self.user_net not in networks and self.proxy_net not in networks, "Fixture networks remain"
 
     def execute(self):
         try:
@@ -357,23 +369,37 @@ class Rehearsal:
             self.report["error"] = type(error).__name__ + ": " + str(error)
             raise
         finally:
-            self.teardown()
+            cleanup_error = None
+            try:
+                self.teardown()
+                self.report["fixture_resources_removed"] = True
+            except Exception as error:
+                cleanup_error = error
+                self.report["fixture_resources_removed"] = False
+                self.report["result"] = "failed"
             now = self.snapshot()
             unchanged = all(now.get(cid) == state for cid, state in self.original.items())
             self.report["preexisting_containers_unchanged"] = unchanged
+            if not unchanged:
+                self.report["result"] = "failed"
+            self.report.setdefault("result", "interrupted")
             self.report["finished_at"] = datetime.now(timezone.utc).isoformat()
             self.report_path.write_text(json.dumps(self.report, indent=2) + "\n")
             print("Report:", self.report_path, flush=True)
-            if unchanged and self.report.get("result") == "passed":
+            if unchanged and self.report["result"] == "passed":
                 shutil.rmtree(self.work)
-            elif not unchanged:
-                raise AssertionError("Pre-existing container state changed; investigate immediately")
             else:
                 print("Private diagnostic storage retained:", self.work, flush=True)
+            if cleanup_error:
+                raise RuntimeError("Fixture cleanup failed; inspect the private fixture directory") from cleanup_error
+            if not unchanged:
+                raise AssertionError("Pre-existing container state changed; investigate immediately")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, required=True, help="Sanitized JSON report outside temporary storage")
+    parser.add_argument("--hub-image", default="jupyterhub-scientific-hub:0.1.0", help="Candidate Hub image (baseline/rollback always retain original 0.1.0 contents)")
+    parser.add_argument("--notebook-image", default="jupyterhub-scientific-notebook:0.1.0", help="Candidate notebook image")
     args = parser.parse_args()
-    Rehearsal(args.report.resolve()).execute()
+    Rehearsal(args.report.resolve(), args.hub_image, args.notebook_image).execute()

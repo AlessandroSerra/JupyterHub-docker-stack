@@ -19,7 +19,16 @@ uv run --with-requirements tests/integration/requirements.txt \
   python tests/integration/smoke.py --report /tmp/jhub-rehearsal-report.json
 ```
 
-The suite does not build, retag, or pull project images. It pins the fixture to the IDs of the local images found at startup; this is not a clean-build or dependency-reproducibility test.
+The suite does not build, retag, or pull project images. It pins the fixture to the IDs of the local images found at startup. By default all stages reuse those images; optionally test separately built candidate images during the upgrade stage:
+
+```sh
+uv run --with-requirements tests/integration/requirements.txt \
+  python tests/integration/smoke.py --report /tmp/jhub-candidate-report.json \
+  --hub-image jupyterhub-scientific-hub:validation-COMMIT \
+  --notebook-image jupyterhub-scientific-notebook:validation-COMMIT
+```
+
+Build candidate images under distinct local tags, using `docker build --pull --no-cache` if checking fresh package installation. Never overwrite rollback image references. Baseline and rollback always use the original `0.1.0` image IDs; only the current configuration uses the candidate images. Record build commands and base-image digests separately. Even a successful uncached build is not proof of dependency reproducibility.
 
 ## Isolation and cleanup
 
