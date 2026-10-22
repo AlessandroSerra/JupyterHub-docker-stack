@@ -1,0 +1,38 @@
+http:
+  middlewares:
+    sec-headers:
+      headers:
+        contentTypeNosniff: true
+        referrerPolicy: same-origin
+    auth-ratelimit:
+      rateLimit:
+        average: 20
+        burst: 20
+        period: 1m
+
+  routers:
+    jupyterhub:
+      rule: Host(`localhost`)
+      entryPoints:
+        - websecure
+      tls: {}
+      middlewares:
+        - sec-headers
+      service: jupyterhub
+
+    jupyterhub-auth:
+      rule: Host(`localhost`) && (PathPrefix(`/hub/login`) || PathPrefix(`/hub/signup`))
+      priority: 100
+      entryPoints:
+        - websecure
+      tls: {}
+      middlewares:
+        - sec-headers
+        - auth-ratelimit
+      service: jupyterhub
+
+  services:
+    jupyterhub:
+      loadBalancer:
+        servers:
+          - url: http://jhub:8000
