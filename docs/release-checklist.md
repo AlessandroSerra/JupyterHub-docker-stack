@@ -5,12 +5,12 @@ Scope: a locally built, ARM64-tested development deployment, not production cert
 ## Automated and Docker Desktop checks
 
 - [x] Historical 22-test suite passed on Python 3.10.20, 3.12.13, and 3.14.6 (macOS).
-- [x] Current 27-test suite passes locally on Python 3.10 and 3.12, and on Debian Python 3.13, including mocked firewall preflight/cleanup tests. Compose contracts, Python/Bash syntax and notebook structure pass. Hosted CI still requires a push and result review.
+- [x] Current 27-test suite passes locally on Python 3.10 and 3.12, and on Debian Python 3.13, including mocked firewall preflight/cleanup tests. Compose contracts, Python/Bash syntax and notebook structure pass. Hosted CI passed on functional candidate `86f42f7` ([run](https://github.com/AlessandroSerra/JupyterHub-docker-stack/actions/runs/40531052516)); publication is also gated on CI for the final docs/evidence commit.
 - [x] Python syntax, notebook structure, Compose configuration, cross-file configuration contracts, and Bash syntax pass.
 - [x] The [updated isolated rehearsal](validation-rehearsal-2026-10-27.json) passes **64 checks**, including approved/unapproved login, authorization navigation, migration and snapshot rollback.
 - [x] Record source/target commits, fixture adaptations, platform, image IDs, and [uncached candidate-build provenance](validation-builds-2026-10-22.json).
 - [x] Separate historical and current [validation evidence](validation.md), including explicit untested behavior.
-- [ ] Confirm hosted Python 3.10/3.12 CI results after pushing; the local matrix does not establish GitHub Actions status.
+- [x] Hosted Python 3.10/3.12 and Compose jobs passed on the functional candidate; see the linked run above.
 - [ ] Inspect browser rendering separately if visual correctness is part of the release claim.
 
 ## Native Linux validation — maintainer action required
@@ -40,7 +40,7 @@ Fix issues discovered here before describing native Linux isolation as validated
 - [ ] Verify standalone Docker restart and full firewall-removal connectivity restoration.
 - [ ] Linux migration/backup restoration, amd64 and updated isolated integration rehearsal.
 - [x] Confirm NativeAuthenticator authorization navigation and approved login through the updated integration rehearsal.
-- [ ] Capture hosted CI results after the release-candidate push.
+- [x] Capture successful hosted CI for the functional candidate in release evidence.
 
 ## Release preparation
 
@@ -48,7 +48,7 @@ Fix issues discovered here before describing native Linux isolation as validated
 - [x] Move repository and local project image references together to `0.2.0`, preserving original `0.1.0` rollback images. Do not publish prebuilt images.
 - [x] Update build examples, Compose, spawner, contracts and instructions; record IDs, source hashes and resolved packages in release/rehearsal evidence.
 - [x] Repeat the isolated rehearsal and Debian runtime recheck on the functional candidate files; run unit/static checks.
-- [ ] Verify hosted CI after pushing; local checks alone do not establish hosted status.
+- [x] Verify hosted CI after pushing the functional candidate; rerun on the final docs/evidence commit before tagging.
 - [x] Review release notes, migration instructions, BSD license and rollback assets; keep certificates, credentials and user data out of Git.
 - [x] Maintainer authorized completion, commit, push and release publication; commit messages must have no conventional-prefix syntax.
-- [ ] Tag and publish `v0.2.0` only after successful CI.
+- [x] Publication authorized with a mandatory successful-CI gate. Actual tag/publication status is recorded by the GitHub release, not asserted by this checklist.

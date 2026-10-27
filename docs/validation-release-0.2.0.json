@@ -2,7 +2,18 @@
   "release": "v0.2.0",
   "recorded_at": "2026-10-27T15:24:43.371988+00:00",
   "source_base_commit": "faa91d42c327da0d577a8101b449eeae62466c94",
-  "source_identity": "Working tree before release commit; compare functional-file SHA-256 against the release tag. Subsequent changes limited to docs/evidence.",
+  "source_identity": "Functional candidate committed as 86f42f716c31b88a4adf32837fe73bce9cb03218; SHA-256 values match the committed files. Subsequent changes limited to docs/evidence.",
+  "hosted_ci": {
+    "commit": "86f42f716c31b88a4adf32837fe73bce9cb03218",
+    "result": "success",
+    "url": "https://github.com/AlessandroSerra/JupyterHub-docker-stack/actions/runs/40531052516",
+    "publication_gate": "Recheck hosted CI on the final documentation/evidence commit before tagging"
+  },
+  "secret_scan": {
+    "tool": "Gitleaks 8.30.1",
+    "scope": "Versioned candidate snapshot and post-v0.1.0 branch history before the release commit",
+    "result": "No leaks found; not a guarantee of absence"
+  },
   "functional_files_sha256": {
     "compose.yml": "2fcd05abe27a23cb4a04b8e007d6c52b77e2a15e50ff1f8395bd5dc3d6f6f941",
     "jupyterhub/jupyterhub_config.py": "15ae3c39b61c042396a53d5e3470d5ab25651833afc5e16743c9f0cbf32ff9da",
@@ -69,7 +80,7 @@
     "result": "passed"
   },
   "linux_release_recheck": {
-    "updated_stack": "Hub recreated using 0.2.0, prova2 server stopped and freshly spawned using 0.2.0; temporary admin API tokens expired after 600 seconds and were deleted after each operation",
+    "updated_stack": "Hub recreated using 0.2.0, prova2 server stopped and freshly spawned using 0.2.0; temporary admin API tokens were configured to expire after 600 seconds and were deleted after each operation",
     "runtime": {
       "client": "jupyter-prova2",
       "checks": [
@@ -136,7 +147,6 @@
   "limitations": [
     "ARM64 only; no amd64 validation",
     "Linux migration/backup restoration and full address-range coverage remain untested",
-    "No load/production-hardening or CD claim",
-    "Hosted CI must be reviewed after push"
+    "No load/production-hardening or CD claim"
   ]
 }
