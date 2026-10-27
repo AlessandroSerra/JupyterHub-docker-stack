@@ -1,5 +1,7 @@
 import os
 
+import nativeauthenticator
+
 # Must match the jupyterhub service's ipv4_address in compose.yml.
 HUB_IP = "172.30.250.10"
 
@@ -35,14 +37,19 @@ c.JupyterHub.log_level = "INFO"
 # Do not start a notebook server immediately after login.
 c.JupyterHub.redirect_to_server = False
 
+# Expose NativeAuthenticator's account-management templates.
+c.JupyterHub.template_paths = [
+    f"{os.path.dirname(nativeauthenticator.__file__)}/templates/"
+]
+
 # NativeAuthenticator
 c.JupyterHub.authenticator_class = "nativeauthenticator.NativeAuthenticator"
 
 # JupyterHub administrator
 c.Authenticator.admin_users = {"jhubadmin"}
 
-# Explicitly allowed users
-c.Authenticator.allowed_users = {"jhubadmin"}
+# NativeAuthenticator approval controls access; no additional Hub allowlist.
+c.Authenticator.allow_all = True
 
 # Simple usernames only: no "/", "..", spaces, or uppercase letters.
 c.Authenticator.username_pattern = r"^[a-z][a-z0-9_-]{1,31}$"
@@ -59,7 +66,7 @@ c.NativeAuthenticator.seconds_before_next_try = 600
 # DockerSpawner
 c.JupyterHub.spawner_class = "dockerspawner.DockerSpawner"
 
-c.DockerSpawner.image = "jupyterhub-scientific-notebook:0.1.0"
+c.DockerSpawner.image = "jupyterhub-scientific-notebook:0.2.0"
 c.DockerSpawner.network_name = "jupyterhub_net"
 c.DockerSpawner.use_internal_ip = True
 

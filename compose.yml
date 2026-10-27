@@ -33,7 +33,7 @@ services:
       - proxy_net
 
   jupyterhub:
-    image: jupyterhub-scientific-hub:0.1.0
+    image: jupyterhub-scientific-hub:0.2.0
     container_name: jhub
     restart: unless-stopped
     command: jupyterhub -f /etc/jupyterhub/jupyterhub_config.py

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Network isolation for JupyterHub user containers (native Linux Docker Engine only).
 #
-# STATUS: NOT YET TESTED on a native Linux host (developed on macOS).
-# Validate on first deployment using the "Linux network isolation" section in README.md.
+# Selected paths manually tested on a Debian 13 ARM64 VM; see docs/validation-linux-2026-10-27.md.
+# Revalidate on the deployment host; IPv4 only, not a complete security boundary.
 #
 # Policy:
 #   - user container <-> user container: blocked
@@ -15,13 +15,6 @@ set -euo pipefail
 BR="br-jhub-users"          # com.docker.network.bridge.name in compose.yml
 HUB_IP="172.30.250.10"      # Hub ipv4_address in compose.yml
 DNS_SERVERS=("CHANGE_ME")   # actual resolvers, e.g. ("192.168.1.1" "1.1.1.1")
-
-for ns in "${DNS_SERVERS[@]}"; do
-  if [ "$ns" = "CHANGE_ME" ]; then
-    echo "Set DNS_SERVERS in $0 (see README)" >&2
-    exit 1
-  fi
-done
 
 remove() {
   iptables -D DOCKER-USER -j JHUB-USERS 2>/dev/null || true
@@ -37,8 +30,24 @@ if [ "${1:-start}" = "stop" ]; then
   exit 0
 fi
 
+for ns in "${DNS_SERVERS[@]}"; do
+  if [ "$ns" = "CHANGE_ME" ]; then
+    echo "Set DNS_SERVERS in $0 (see README)" >&2
+    exit 1
+  fi
+done
+
+# Do not replace existing rules when the required Docker/bridge hooks are absent.
+if ! iptables -S DOCKER-USER >/dev/null 2>&1; then
+  echo "Docker iptables DOCKER-USER chain required; check Docker's firewall backend" >&2
+  exit 1
+fi
+if [ "$(sysctl -n net.bridge.bridge-nf-call-iptables 2>/dev/null || true)" != "1" ]; then
+  echo "Load br_netfilter and set net.bridge.bridge-nf-call-iptables=1 (see README)" >&2
+  exit 1
+fi
+
 remove
-iptables -N DOCKER-USER 2>/dev/null || true
 
 # --- forwarded traffic (container <-> container, container -> external network) ---
 iptables -N JHUB-USERS

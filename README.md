@@ -4,9 +4,9 @@ A self-hosted JupyterHub deployment for a university-style scientific computing 
 
 ## Release and development status
 
-The latest tagged repository release is **`v0.1.0`** (`8bc65b9`). The architecture and configuration described in this checkout include **unreleased changes after that tag**; they are not a description of the original release. In `v0.1.0`, Traefik shared the notebook network and mounted the Docker socket; the current configuration separates the proxy network and removes Traefik's socket access.
+This checkout targets **`v0.2.0`**. In `v0.1.0`, Traefik shared the notebook network and mounted the Docker socket; `v0.2.0` separates the proxy network and removes Traefik's socket access. Registered users require administrator approval; there is no additional Hub username allowlist.
 
-See the [changelog](CHANGELOG.md), [migration guide](docs/migration.md), and [validation status](docs/validation.md) before upgrading. No subsequent release version has been assigned. An isolated Docker Desktop smoke, migration, and snapshot-based rollback rehearsal passed with separately rebuilt candidate images; native Linux validation remains pending. The [release checklist](docs/release-checklist.md) tracks remaining work.
+See the [changelog](CHANGELOG.md), [migration guide](docs/migration.md), and [validation status](docs/validation.md) before upgrading. An isolated Docker Desktop smoke, migration, and snapshot-based rollback rehearsal passed with separately rebuilt candidate images. Selected Linux runtime and firewall paths were manually tested on a Debian 13 ARM64 VM; see the [Linux report](docs/validation-linux-2026-10-27.md) for fixes and remaining gaps. The [release checklist](docs/release-checklist.md) tracks remaining work.
 
 ## Architecture
 
@@ -57,10 +57,10 @@ This repository captures a working deployment, not a production-hardened platfor
 | `notebooks/` | PyROOT and ROOT C++ demonstration notebooks |
 | `tests/` | Standard-library tests for the kernel helper and host storage mapping |
 | `docs/operations.md` | Administration, persistence, security, and troubleshooting |
-| `docs/migration.md` | Upgrade and rollback plan from `v0.1.0` to post-release development |
+| `docs/migration.md` | Upgrade and rollback plan from `v0.1.0` to `v0.2.0` |
 | `CHANGELOG.md` | Tagged releases and unreleased repository changes |
 | `traefik/dynamic/jupyterhub.yml` | Static Traefik route, rate limit and security headers (Traefik has no Docker socket access) |
-| `deploy_linux/` | Linux-only network isolation (iptables script and systemd unit); not yet tested |
+| `deploy_linux/` | Optional IPv4 iptables isolation; selected paths tested on Debian ARM64, deployment-specific validation still required |
 
 ## Prerequisites
 
@@ -91,13 +91,22 @@ On other systems, install [mkcert](https://github.com/FiloSottile/mkcert) using 
 
 Traefik loads the certificate paths from `traefik/dynamic/tls.yml`. This is development TLS, not publicly trusted production TLS.
 
+On native Linux, Traefik runs as root with capabilities dropped. Give its private key root ownership and restrictive permissions so it can read it:
+
+```sh
+sudo chown root:root traefik/certs/local-key.pem
+sudo chmod 600 traefik/certs/local-key.pem
+```
+
+If accessing a VM through an SSH tunnel, generate the certificate in the VM and trust only its public `rootCA.pem` on the client; never transfer `rootCA-key.pem`. Use `ssh -N -L 8443:127.0.0.1:8443 user@vm-address` and browse to `https://localhost:8443`.
+
 ### Start the services
 
 Run from the repository root. For an existing `v0.1.0` installation, follow the [migration guide](docs/migration.md) first: the changed network must be recreated after stopping notebook servers. Compose references local image tags rather than building images automatically:
 
 ```sh
-docker build -t jupyterhub-scientific-hub:0.1.0 ./jupyterhub
-docker build -t jupyterhub-scientific-notebook:0.1.0 ./singleuser
+docker build -t jupyterhub-scientific-hub:0.2.0 ./jupyterhub
+docker build -t jupyterhub-scientific-notebook:0.2.0 ./singleuser
 
 sudo mkdir -p /srv/jupyterhub/hub /srv/jupyterhub/users
 sudo chmod 700 /srv/jupyterhub/hub /srv/jupyterhub/users
@@ -109,7 +118,7 @@ docker compose logs -f jupyterhub
 
 Open **https://localhost:8443**. HTTP on `http://localhost:8000` redirects to HTTPS. Both published ports are loopback-only, the router expects the hostname `localhost`, and the Traefik dashboard is disabled. Traefik terminates TLS; traffic to JupyterHub remains HTTP on the Docker network.
 
-**Authentication is intentionally locked down:** the committed configuration names `jhubadmin` as administrator and in the allowlist, with `open_signup = False`. An existing installation uses its persisted authentication database. On a new installation, sign up as `jhubadmin` at `/hub/signup`; NativeAuthenticator automatically authorizes configured administrators. Starting the containers alone does not create a password. See [account administration](docs/operations.md#account-administration).
+**Authentication requires administrator approval:** `jhubadmin` is the administrator, `open_signup = False` prevents automatic approval, and `allow_all = True` removes an additional Hub allowlist (it does not bypass authentication or NativeAuthenticator approval). An existing installation uses its persisted authentication database. On a new installation, sign up as `jhubadmin` at `/hub/signup`; NativeAuthenticator automatically authorizes configured administrators. Starting the containers alone does not create a password. See [account administration](docs/operations.md#account-administration).
 
 ### Docker Desktop storage paths
 
@@ -124,7 +133,7 @@ Create those directories instead of the `/srv` directories above. Ensure Docker 
 
 The notebook image tag used by DockerSpawner is configured in `jupyterhub/jupyterhub_config.py`, not in Compose. When changing image tags, update the corresponding configuration too.
 
-Both project image references still use `0.1.0`; these image tags do **not** identify the repository revision or prove that the deployment matches Git tag `v0.1.0`. Compose and bind-mounted Hub/Traefik configuration can change without changing image tags. Record the deployed commit, local configuration changes, and actual image IDs/digests together.
+Both project image references use `0.2.0`, matching this repository release. Images must be built locally; this release does not publish prebuilt images. Tags alone do **not** prove the deployed contents. Compose and bind-mounted Hub/Traefik configuration can change without changing image tags. Record the deployed commit, local configuration changes, and actual image IDs/digests together.
 
 Dependencies in the notebook image are not version-locked, and its base tag can change upstream. Rebuilding the same tag is not guaranteed to produce identical contents. Image tags and repository release labels do not imply production readiness or reproducible builds; upstream packages keep their own versions.
 
@@ -180,9 +189,21 @@ These are static/unit checks, not end-to-end verification of login, spawning, or
 
 ## Linux network isolation
 
-> **Status: untested.** The stack is developed and verified on macOS (Docker Desktop). The files in `deploy_linux/` require a native Linux Docker Engine host and must be validated on first deployment.
+> **Status: experimental, partially validated.** Selected paths passed on a Debian 13 ARM64 VM with Docker's iptables backend; see the [test report and limitations](docs/validation-linux-2026-10-27.md). Revalidate on each deployment host. The script is IPv4-only and does not support Docker's native nftables backend.
 
 Docker Desktop runs containers inside a VM, so host firewall rules cannot affect them. On native Linux, `deploy_linux/jhub-net-rules.sh` blocks traffic between user containers, from user containers to the host, LAN and cloud metadata addresses, and allows only the Hub API (tcp/8081) towards the Hub. Internet access stays open for conda and pip.
+
+The script refuses to install rules unless `DOCKER-USER` already exists and bridge filtering is enabled. On a dedicated Linux Docker host, configure these prerequisites (bridge filtering affects all bridges; review other firewall policies first):
+
+```sh
+sudo modprobe br_netfilter
+printf '%s\n' br_netfilter | sudo tee /etc/modules-load.d/jhub-netfilter.conf
+printf '%s\n' 'net.bridge.bridge-nf-call-iptables = 1' | sudo tee /etc/sysctl.d/99-jhub-netfilter.conf
+sudo sysctl -p /etc/sysctl.d/99-jhub-netfilter.conf
+sudo iptables -S DOCKER-USER
+```
+
+`iptables --version` showing `nf_tables` is compatible with Docker's **iptables** backend; it is not Docker's native nftables backend. A chain alone does not prove enforcement: verify DROP counters using reachable positive-control services.
 
 1. Find your real DNS resolvers (`grep nameserver /etc/resolv.conf`, or `resolvectl status` if you see `127.0.0.53`) and set them in `DNS_SERVERS` inside the script. The script refuses to run until you do.
 2. Install the script and the unit, then enable it after the stack is up:

@@ -12,7 +12,10 @@ CONFIG = Path(__file__).resolve().parents[1] / "jupyterhub" / "jupyterhub_config
 
 def load_config(environment):
     config = MagicMock()
-    with patch.dict(os.environ, environment, clear=True):
+    authenticator = MagicMock()
+    authenticator.__file__ = "/mock/nativeauthenticator/__init__.py"
+    with patch.dict(os.environ, environment, clear=True), \
+         patch.dict("sys.modules", {"nativeauthenticator": authenticator}):
         namespace = runpy.run_path(str(CONFIG), init_globals={"get_config": lambda: config})
     return config, namespace
 

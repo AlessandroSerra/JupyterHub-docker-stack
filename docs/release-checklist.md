@@ -1,18 +1,21 @@
-# Next-release checklist
+# v0.2.0 release checklist
 
-No new version or tag is assigned by this checklist. The latest released deployment is `v0.1.0`; post-release changes remain **Unreleased**. A possible `v0.2.0` must be a deliberate maintainer decision after reviewing validation evidence and limitations.
+Scope: a locally built, ARM64-tested development deployment, not production certification. Repository and project image references use `0.2.0`; no prebuilt image publication or CD is included. Remaining platform/security coverage below is explicitly outside the release claim.
 
 ## Automated and Docker Desktop checks
 
-- [x] All 22 local unit tests pass on Python 3.10.20, 3.12.13, and 3.14.6 (macOS).
+- [x] Historical 22-test suite passed on Python 3.10.20, 3.12.13, and 3.14.6 (macOS).
+- [x] Current 27-test suite passes locally on Python 3.10 and 3.12, and on Debian Python 3.13, including mocked firewall preflight/cleanup tests. Compose contracts, Python/Bash syntax and notebook structure pass. Hosted CI still requires a push and result review.
 - [x] Python syntax, notebook structure, Compose configuration, cross-file configuration contracts, and Bash syntax pass.
-- [x] The [opt-in isolated rehearsal](../tests/integration/README.md) passes: [61 checks](validation-rehearsal-2026-10-22.json), including migration and snapshot rollback.
+- [x] The [updated isolated rehearsal](validation-rehearsal-2026-10-27.json) passes **64 checks**, including approved/unapproved login, authorization navigation, migration and snapshot rollback.
 - [x] Record source/target commits, fixture adaptations, platform, image IDs, and [uncached candidate-build provenance](validation-builds-2026-10-22.json).
 - [x] Separate historical and current [validation evidence](validation.md), including explicit untested behavior.
 - [ ] Confirm hosted Python 3.10/3.12 CI results after pushing; the local matrix does not establish GitHub Actions status.
 - [ ] Inspect browser rendering separately if visual correctness is part of the release claim.
 
 ## Native Linux validation — maintainer action required
+
+A [Debian 13 ARM64 VM session](validation-linux-2026-10-27.md) covered selected runtime and firewall paths. This is partial evidence, not completion of every item below. The updated preflight positive path and 11 automated runtime checks subsequently passed on the VM; see the [recheck evidence](validation-linux-recheck-2026-10-27.json). Final commit/image identity and remaining coverage still require review.
 
 Use a disposable native Linux Docker Engine host or VM, fresh storage, and non-production credentials. A container running under Docker Desktop is not a substitute. Record Engine/Compose/kernel versions, architecture, firewall backend, Git commit, image IDs/digests, and any local changes.
 
@@ -24,13 +27,28 @@ Use a disposable native Linux Docker Engine host or VM, fresh storage, and non-p
 6. **Lifecycle and rollback:** inspect firewall counters after container replacement and Docker/host restarts. Disable the systemd unit and confirm the custom chains/jumps are removed and expected connectivity returns. Perform these experiments only on the disposable host. Record any failure rather than treating the untested script as a security guarantee.
 7. **Upgrade and restore:** rehearse [migration and rollback](migration.md) with Linux permissions and real network recreation. Verify backup restoration, account compatibility, and persistent data after each transition. Stop every notebook before network removal.
 
-Fix issues discovered here before describing native Linux isolation as validated. At minimum, retain an explicit experimental/untested designation if shipping without successful evidence.
+Fix issues discovered here before describing native Linux isolation as validated. Retain an explicit experimental/partially validated designation while coverage is incomplete.
 
-## Release preparation (no publication implied)
+### Debian VM follow-up
 
-- [ ] Review changes from `v0.1.0`, including compatibility notes and residual Docker-socket authority in the Hub.
-- [ ] Choose whether deployment and image versions move together or independently. Document the policy; do not silently retag existing image contents.
-- [ ] If changing image versions, update build examples, Compose, spawner configuration, contract checks, and operating instructions consistently. Record immutable image IDs/digests and resolved dependencies.
-- [ ] Repeat appropriate smoke tests on the exact candidate commit and images. Verify the hosted CI result after pushing; local checks alone do not establish hosted status.
-- [ ] Review secrets, licenses, release notes, migration instructions, and rollback assets.
-- [ ] Only then approve a version, tag/release, and publication. Push, merge, and release creation require explicit maintainer approval.
+- [x] Record environment and image IDs, approved/unapproved login, scientific kernels and persistent environments.
+- [x] Verify bridge, host, Hub-port and one private-network path using positive controls and counters.
+- [x] Verify VM reboot restores bridge-filter prerequisites, single firewall jumps and notebook connectivity/isolation.
+- [x] Updated preflight installed successfully on the VM; 27 unit tests, Compose contracts and 11 runtime checks passed; workspace UID/GID/mode inspected as `1000:100 / 0700`.
+- [x] Reconcile functional-file hashes and immutable image IDs in [release evidence](validation-release-0.2.0.json); freshly spawn the `0.2.0` notebook in Debian and pass 11 runtime checks.
+- [ ] Complete controlled link-local/CGNAT/private-range and direct DNS-exception coverage; do not count the other-Docker-network timeout as enforcement by this script.
+- [ ] Verify standalone Docker restart and full firewall-removal connectivity restoration.
+- [ ] Linux migration/backup restoration, amd64 and updated isolated integration rehearsal.
+- [x] Confirm NativeAuthenticator authorization navigation and approved login through the updated integration rehearsal.
+- [ ] Capture hosted CI results after the release-candidate push.
+
+## Release preparation
+
+- [x] Review changes from `v0.1.0`, approval-policy compatibility and residual Docker-socket authority in the Hub.
+- [x] Move repository and local project image references together to `0.2.0`, preserving original `0.1.0` rollback images. Do not publish prebuilt images.
+- [x] Update build examples, Compose, spawner, contracts and instructions; record IDs, source hashes and resolved packages in release/rehearsal evidence.
+- [x] Repeat the isolated rehearsal and Debian runtime recheck on the functional candidate files; run unit/static checks.
+- [ ] Verify hosted CI after pushing; local checks alone do not establish hosted status.
+- [x] Review release notes, migration instructions, BSD license and rollback assets; keep certificates, credentials and user data out of Git.
+- [x] Maintainer authorized completion, commit, push and release publication; commit messages must have no conventional-prefix syntax.
+- [ ] Tag and publish `v0.2.0` only after successful CI.

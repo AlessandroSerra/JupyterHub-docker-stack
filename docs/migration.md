@@ -1,10 +1,10 @@
-# Migrating from v0.1.0 to post-release development
+# Migrating from v0.1.0 to v0.2.0
 
-These instructions describe the changes from Git tag `v0.1.0` (`8bc65b9`) to the current post-release configuration. The procedure passed an [isolated Docker Desktop rehearsal](validation.md#post-v010-development-checks-2026-10-22) using disposable storage, adapted resource names/addresses, and separately rebuilt candidate images. This is not a new release announcement, proof of a safe in-place production upgrade, or native Linux validation. Rehearse the upgrade and rollback on a separate host before using valuable data.
+These instructions describe the changes from Git tag `v0.1.0` (`8bc65b9`) to `v0.2.0`. The procedure passed an [isolated Docker Desktop rehearsal](validation.md#post-v010-development-checks-2026-10-22) using disposable storage, adapted resource names/addresses, and separately rebuilt candidate images. An updated [64-check rehearsal](validation-rehearsal-2026-10-27.json) also passed with the `0.2.0` images and current approval-policy/templates. Selected runtime/firewall paths were later tested on a [Debian ARM64 VM](validation-linux-2026-10-27.md), but Linux migration/restore was not. This is not a new release announcement or proof of a safe in-place production upgrade. Rehearse the upgrade and rollback on a separate host before using valuable data.
 
 ## What changes
 
-| Area | v0.1.0 | Post-release configuration |
+| Area | v0.1.0 | v0.2.0 |
 | --- | --- | --- |
 | Traefik routing | Docker provider and Hub labels | File provider and `traefik/dynamic/jupyterhub.yml` |
 | Traefik Docker socket | Mounted read-only | Not mounted |
@@ -12,9 +12,13 @@ These instructions describe the changes from Git tag `v0.1.0` (`8bc65b9`) to the
 | User network | Docker-selected subnet and bridge | `172.30.250.0/24`, bridge `br-jhub-users` |
 | Hub API | `jhub:8081` | `172.30.250.10:8081` |
 | Account policy | Minimum password length 8, no explicit username pattern | Minimum 12, username pattern `^[a-z][a-z0-9_-]{1,31}$` |
-| Linux firewall | Not provided | Optional, manually configured, untested |
+| Linux firewall | Not provided | Optional IPv4 iptables policy; selected Debian ARM64 paths tested, bridge filtering required |
 
-Host storage defaults, storage environment variables, notebook mount paths, and project image references remain unchanged. The Hub still controls Docker through its socket. This is not a migration to a fully isolated or production-hardened platform.
+Host storage defaults, storage environment variables and notebook mount paths remain unchanged. Build the new project images with `0.2.0` tags; keep original `0.1.0` images for rollback. The Hub still controls Docker through its socket. This is not a migration to a fully isolated or production-hardened platform.
+
+## Approval-policy compatibility
+
+The current checkout uses `allow_all=True` together with NativeAuthenticator `open_signup=False`: users can register, but administrator approval is required before login. There is no additional Hub username allowlist. Compared with the preceding administrator-only allowlist configuration, already-approved non-admin accounts can now log in. Review persisted account approvals before enabling access. Retain an explicit allowlist if administrator-only or narrower admission is intended. NativeAuthenticator management templates are also enabled.
 
 ## Before maintenance
 
@@ -48,7 +52,7 @@ The existing network cannot simply acquire the new IPAM subnet and bridge option
 ## Start the target configuration
 
 1. Check out the exact target revision, restore/reapply reviewed local configuration, and preserve `.env`, certificates, Hub state, and user workspaces. Do not mix the target configuration with running old services.
-2. Ensure the local Hub and notebook images exist and record their IDs. Follow the [build instructions](../README.md#start-the-services) if builds are required. Rebuilding a `0.1.0` tag can resolve different upstream dependencies; retain rollback images before overwriting tags.
+2. Ensure the local Hub and notebook images exist and record their IDs. Follow the [build instructions](../README.md#start-the-services) if builds are required. Build under the new `0.2.0` tags rather than overwriting `0.1.0` rollback assets. Dependencies remain unlocked; rebuilding any tag may resolve different upstream contents.
 3. Validate and start, using the original Compose project/options:
 
    ```sh

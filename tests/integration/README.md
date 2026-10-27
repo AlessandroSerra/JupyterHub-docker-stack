@@ -1,11 +1,24 @@
-# Opt-in Docker Desktop rehearsal
+# Opt-in deployment checks
+
+## Linux firewall/runtime recheck
+
+On a disposable Linux Docker Engine VM with rules already installed, a running notebook, and the VM's mkcert CA:
+
+```sh
+python3 tests/integration/linux_firewall_smoke.py \
+  --client jupyter-prova2 --ca "$(mkcert -CAROOT)/rootCA.pem"
+```
+
+This standard-library script checks bridge isolation with a reachable HTTP positive control, Hub ports, DNS/Internet, verified Traefik TLS, PyROOT, network IPv6 configuration and workspace permissions. It creates/removes only one temporary HTTP container, does not change firewall rules or existing user data, and needs Docker access (root-equivalent). It assumes the default UID/GID/mode policy. Optionally pass `--environment /home/jovyan/work/.conda/envs/analysis/bin/python` **only if that environment belongs to the selected client**. JSON is printed to stdout; a failed check returns nonzero. This is not a complete LAN/metadata, lifecycle, login or migration test.
+
+## Docker Desktop migration rehearsal
 
 This suite starts a disposable deployment from Git tag `v0.1.0`, creates an administrator and notebook server, writes persistent data and a real Conda environment, upgrades the fixture to the current checkout, restarts it, then restores the baseline snapshot and rolls back. It exercises HTTPS, OAuth session cookies, Python/ROOT/custom-kernel WebSockets, demo notebook execution, account restrictions, five-failure login lockout, rate limiting, container settings, and persistence. Lockout is exercised only against the disposable administrator, after the candidate lifecycle checks; rollback restores the baseline state.
 
 It is **not** part of normal unit tests or automatic CI. It requires a local Docker daemon with spare resources, Python 3.12+, `uv`, `mkcert`, the existing mkcert CA, network access for Conda, and these already-built images:
 
-- `jupyterhub-scientific-hub:0.1.0`
-- `jupyterhub-scientific-notebook:0.1.0`
+- `jupyterhub-scientific-hub:0.1.0` and `jupyterhub-scientific-notebook:0.1.0` for baseline/rollback
+- `jupyterhub-scientific-hub:0.2.0` and `jupyterhub-scientific-notebook:0.2.0` for the candidate
 - `traefik:v3.7`
 
 Review `smoke.py` before running: the disposable Hub and the baseline Traefik receive the Docker socket, which grants significant authority over the daemon. Use a development daemon, not an institutional production host.

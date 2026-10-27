@@ -322,6 +322,20 @@ class Rehearsal:
                 response = self.session.get(self.url + "/hub/home", timeout=20)
                 self.check("current: unapproved account cannot log in", "/hub/login" in response.url)
         self.session = admin
+        response = self.session.get(self.url + "/hub/home", timeout=20)
+        self.check("current: administrator has authorization navigation",
+                   response.status_code == 200 and 'href="/hub/authorize"' in response.text)
+        response = self.session.get(self.url + "/hub/authorize/unapproved", timeout=20)
+        self.check("current: administrator can approve registered account",
+                   response.status_code == 200 and "/hub/authorize" in response.url)
+        self.session = requests.Session()
+        self.session.trust_env = False
+        self.session.verify = str(self.ca)
+        self.form("/hub/login", {"username": "unapproved", "password": self.password})
+        response = self.session.get(self.url + "/hub/home", timeout=20)
+        self.check("current: approved account can log in without Hub allowlist",
+                   response.status_code == 200 and "/hub/home" in response.url)
+        self.session = admin
         response = self.session.get(self.url + "/hub/login", timeout=20)
         self.check("current: security headers", response.headers.get("X-Content-Type-Options") == "nosniff" and response.headers.get("Referrer-Policy") == "same-origin")
         statuses = [self.session.get(self.url + "/hub/login", timeout=10).status_code for _ in range(30)]
@@ -435,7 +449,7 @@ class Rehearsal:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, required=True, help="Sanitized JSON report outside temporary storage")
-    parser.add_argument("--hub-image", default="jupyterhub-scientific-hub:0.1.0", help="Candidate Hub image (baseline/rollback always retain original 0.1.0 contents)")
-    parser.add_argument("--notebook-image", default="jupyterhub-scientific-notebook:0.1.0", help="Candidate notebook image")
+    parser.add_argument("--hub-image", default="jupyterhub-scientific-hub:0.2.0", help="Candidate Hub image (baseline/rollback always retain original 0.1.0 contents)")
+    parser.add_argument("--notebook-image", default="jupyterhub-scientific-notebook:0.2.0", help="Candidate notebook image")
     args = parser.parse_args()
     Rehearsal(args.report.resolve(), args.hub_image, args.notebook_image).execute()

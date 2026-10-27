@@ -2,9 +2,23 @@
 
 ## Validation scope
 
-The current checkout includes unreleased changes after Git tag `v0.1.0` (`8bc65b9`). Historical results below describe the initial release baseline, not end-to-end validation of the new proxy network, file-based routing, hardening, or optional Linux firewall. Unchanged `0.1.0` image tags do not make different repository revisions equivalent; record the commit, local configuration, and image IDs/digests with each test run.
+This document records `v0.2.0` validation and historical checks after `v0.1.0` (`8bc65b9`). Historical results below describe the initial release baseline, not end-to-end validation of the new proxy network, file-based routing, hardening, or optional Linux firewall. Unchanged `0.1.0` image tags do not make different repository revisions equivalent; record the commit, local configuration, and image IDs/digests with each test run.
 
 See the [changelog](../CHANGELOG.md) and [migration guide](migration.md) for the changes and upgrade plan.
+
+## v0.2.0 release candidate: 2026-10-27
+
+- **27 unit tests** passed on Python 3.10/3.12 locally and Python 3.13 in Debian; syntax, notebook structure and Compose contracts passed.
+- Updated isolated Docker Desktop rehearsal: **64 checks passed**, including new administrator authorization navigation, approval and approved login, Python/ROOT/custom-kernel WebSockets, migration and snapshot rollback. [Full report](validation-rehearsal-2026-10-27.json).
+- Debian VM: images built under new local `0.2.0` tags, Hub recreated and notebook freshly spawned; **11 runtime checks passed** with the updated firewall installed. Temporary lifecycle-validation API tokens were short-lived and removed after use.
+- [Release provenance](validation-release-0.2.0.json) records functional-file hashes and immutable image IDs. Builds used cache; this is not reproducibility proof. No prebuilt registry images are published.
+- ARM64 only. Native Linux migration/restore, full address-range coverage, load testing and CD remain outside the validation claim. The Debian firewall remains experimental/partially validated.
+
+## Debian ARM64 VM checks: 2026-10-27
+
+See the [manual Linux report](validation-linux-2026-10-27.md) for exact provenance, local changes, runtime results, firewall counter evidence, and limitations. Selected inter-container, Hub-port, host and private-network paths passed after enabling `br_netfilter`. TLS key ownership and the account approval policy were corrected. A host reboot preserved prerequisites and rules. Other-Docker-network isolation was inconclusive for this script; Linux migration/backup restoration, the full address-range matrix, amd64 and exact-final-candidate validation remain open.
+
+The older rehearsal below predates the new approval policy and template configuration. Its 61-check result remains historical; use the newer 64-check release report for those changes.
 
 ## Post-v0.1.0 development checks: 2026-10-22
 
@@ -38,7 +52,7 @@ Resolved candidate versions include Hub **5.4.4**, DockerSpawner **14.0.0**, Nat
 
 Still pending:
 
-- Native Linux firewall behavior, inter-user and host/LAN isolation, host permissions, amd64 builds, and Linux-specific migration/restore; follow the [maintainer checklist](release-checklist.md#native-linux-validation--maintainer-action-required).
+- At the time of this rehearsal, native Linux validation remained pending. Selected Linux paths were subsequently tested on 2026-10-27 as recorded above; amd64, full host-permission inspection and Linux-specific migration/restore remain pending. Follow the [maintainer checklist](release-checklist.md#native-linux-validation--maintainer-action-required).
 - Visual browser inspection, concurrent-user/load tests, resource exhaustion, and long-running workloads.
 - Timing of lockout expiration: the configured 600-second delay is unit-tested, but the full expiration interval was not timed.
 - Hosted GitHub Actions results for this branch, public TLS, and institution-specific deployment/recovery procedures.

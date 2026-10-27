@@ -23,10 +23,11 @@ class AccountPolicyTests(unittest.TestCase):
             with self.subTest(rejected=username):
                 self.assertIsNone(re.fullmatch(pattern, username))
 
-    def test_signup_and_allowlist_remain_restricted(self):
-        self.assertFalse(self.config.NativeAuthenticator.open_signup)
+    def test_signup_requires_approval_without_hub_allowlist(self):
+        self.assertIs(self.config.NativeAuthenticator.open_signup, False)
         self.assertEqual(self.config.Authenticator.admin_users, {"jhubadmin"})
-        self.assertEqual(self.config.Authenticator.allowed_users, {"jhubadmin"})
+        self.assertIs(self.config.Authenticator.allow_all, True)
+        self.assertNotIn("allowed_users", vars(self.config.Authenticator))
 
     def test_password_and_retry_policy(self):
         auth = self.config.NativeAuthenticator

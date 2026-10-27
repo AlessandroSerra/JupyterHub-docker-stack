@@ -1,0 +1,93 @@
+{
+  "recorded_at": "2026-10-27T15:14:29.174924+00:00",
+  "base_commit": "faa91d42c327da0d577a8101b449eeae62466c94",
+  "candidate": "uncommitted working-tree files, not a release tag",
+  "vm_sha256": {
+    "deploy_linux/jhub-net-rules.sh": "2be3f29216b29d0a32b1a6895831a3342bb541b9baff264070e5b8e52372cafb",
+    "jupyterhub/jupyterhub_config.py": "3f9ab1f0ff8a30577ca3ce3940bfd9e55cbe62dbe27dd5a40bbe9f7ef9c8d202",
+    "tests/test_hub_config.py": "2b4c05693a60cbed74b3219733e2cc803956d100801f47724973986be3136fec",
+    "tests/test_security_config.py": "8dd5ae7abb00b8938702cf9c651375a2b8ab2cc403a4e0c10546db293276b038",
+    "tests/test_firewall_script.py": "fcb06b5ca232f8c4da2a257b6f744419227da2fa37cb66d038fc9b347cd715df",
+    "tests/integration/linux_firewall_smoke.py": "844bd8fdac2b4c1b2b6443020b93e594d1b8ec5bdbc54f71006d00fb1f3a5f77"
+  },
+  "installed_firewall_sha256": "2be3f29216b29d0a32b1a6895831a3342bb541b9baff264070e5b8e52372cafb",
+  "vm_dns_override": "192.168.64.1 (repository default remains CHANGE_ME)",
+  "service_state": "active",
+  "service_main_status": "ExecMainStatus=0",
+  "bridge_filtering": "1",
+  "unit_tests": {
+    "passed": 27,
+    "execution": "python3 -m unittest discover -s tests -v"
+  },
+  "compose_contracts": "passed",
+  "bash_syntax": "passed",
+  "runtime": {
+    "client": "jupyter-prova2",
+    "checks": [
+      {
+        "check": "Hub can reach temporary HTTP target",
+        "passed": true,
+        "detail": "200"
+      },
+      {
+        "check": "Notebook cannot reach temporary HTTP target",
+        "passed": true,
+        "detail": "timeout"
+      },
+      {
+        "check": "Hub API health from notebook",
+        "passed": true,
+        "detail": "200"
+      },
+      {
+        "check": "Hub port 8000 positive control",
+        "passed": true,
+        "detail": "listening"
+      },
+      {
+        "check": "Notebook cannot reach Hub port 8000",
+        "passed": true,
+        "detail": "timeout"
+      },
+      {
+        "check": "Notebook DNS",
+        "passed": true,
+        "detail": "104.20.23.154"
+      },
+      {
+        "check": "Notebook Internet HTTPS",
+        "passed": true,
+        "detail": "200"
+      },
+      {
+        "check": "Verified Traefik HTTPS",
+        "passed": true,
+        "detail": "200"
+      },
+      {
+        "check": "Notebook PyROOT",
+        "passed": true,
+        "detail": "6.40.04"
+      },
+      {
+        "check": "User network IPv6 disabled",
+        "passed": true,
+        "detail": false
+      },
+      {
+        "check": "Workspace UID/GID/mode",
+        "passed": true,
+        "detail": "1000:100 0700"
+      }
+    ]
+  },
+  "persistent_environment": {
+    "owner": "jhubadmin",
+    "method": "temporary read-only bind mount, network disabled; not a fresh Hub spawn",
+    "python": "/home/jovyan/work/.conda/envs/analysis/bin/python",
+    "numpy": "2.5.4",
+    "passed": true
+  },
+  "initial_smoke_issue": "analysis environment was initially assumed to exist for prova2; it belongs to jhubadmin. First run failed only this check; script now tests an environment only when explicitly requested.",
+  "scope": "Updated firewall positive preflight and runtime recheck. Missing-prerequisite failures tested with fake commands, not by disabling live VM protections. No hosted CI, migration/restore, publication or final tagged-commit validation."
+}

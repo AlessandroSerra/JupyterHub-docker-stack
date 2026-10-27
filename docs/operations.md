@@ -1,12 +1,12 @@
 # Operations guide
 
-This guide describes the current checkout, including unreleased changes after `v0.1.0`. For differences from the tagged release and maintenance steps, see the [changelog](../CHANGELOG.md) and [migration guide](migration.md).
+This guide describes the `v0.2.0` configuration. For differences from the tagged release and maintenance steps, see the [changelog](../CHANGELOG.md) and [migration guide](migration.md).
 
 ## Account administration
 
 The committed policy in `jupyterhub/jupyterhub_config.py` is deliberately narrow:
 
-- `jhubadmin` is the administrator and the only username in the explicit allowlist. NativeAuthenticator also maintains its own approval policy.
+- `jhubadmin` is the administrator. There is no extra Hub username allowlist: `allow_all = True` delegates admission to NativeAuthenticator authentication and approval.
 - NativeAuthenticator open signup is disabled.
 - Passwords require at least twelve characters and are checked against common passwords.
 - Five failed logins trigger a 600-second retry delay.
@@ -25,11 +25,11 @@ Bootstrap only on a trusted, locally accessible host, not on a publicly exposed 
 4. Confirm that it can log in and access administration.
 5. Verify account policy before granting network access. A fresh unapproved non-admin account was confirmed unable to log in during the smoke test.
 
-`open_signup` is NativeAuthenticator's automatic authorization policy; it is not necessarily a switch that removes the signup form. The username allowlist is a separate JupyterHub policy. See the [NativeAuthenticator documentation](https://native-authenticator.readthedocs.io/) for the pinned version's authorization behavior.
+`open_signup` is NativeAuthenticator's automatic authorization policy; it is not necessarily a switch that removes the signup form. `allow_all = True` removes the separate JupyterHub allowlist gate; it does not bypass NativeAuthenticator approval or password authentication. See the [NativeAuthenticator documentation](https://native-authenticator.readthedocs.io/) for the pinned version's authorization behavior.
 
 ### Additional users
 
-Multi-user container spawning is configured, but general student access is **not** enabled by the committed authentication policy. Deliberately revise the allowlist and NativeAuthenticator approval policy before onboarding users. Test with a non-admin account; do not assume that creating an account or approving it overrides every access restriction.
+Users can register at `/hub/signup`, but cannot log in until an administrator approves them. As `jhubadmin`, open `/hub/authorize` to review requests; NativeAuthenticator templates are explicitly enabled for its management UI. Approval is sufficient under the default policy, without editing a second username allowlist. Verify both an approved and an unapproved non-admin account before onboarding users. Public signup still requires abuse-prevention and operational review.
 
 ## Storage and permissions
 
@@ -62,7 +62,7 @@ Compose does not have `build:` declarations. Build the Hub and notebook images e
 
 - Hub image reference: `compose.yml`.
 - Notebook image reference: `jupyterhub/jupyterhub_config.py`.
-- Current configured image references: `jupyterhub-scientific-hub:0.1.0` and `jupyterhub-scientific-notebook:0.1.0`. These are image tags, not identifiers for the current deployment configuration.
+- Current configured image references: `jupyterhub-scientific-hub:0.2.0` and `jupyterhub-scientific-notebook:0.2.0`. These are image tags, not identifiers for the current deployment configuration.
 - Match build tags to these references; do not update one without the other.
 - Recreate the Hub after a Hub image update: `docker compose up -d --force-recreate jupyterhub`.
 - Stop and restart notebook servers to pick up a new notebook image. Existing running containers retain their current image.
@@ -96,7 +96,7 @@ This is a working development deployment, not a public-service security baseline
 - **Local access only:** ports 8000 and 8443 bind to `127.0.0.1`, and the router matches `localhost`. Network access requires deliberate binding, hostname, certificate, and firewall changes.
 - **Docker socket access:** the Hub can control Docker on the host. Treat Hub compromise as host compromise. Traefik has no Docker socket access; it uses the file provider for routing.
 - **Containers are not a complete hostile-code sandbox:** capability dropping and resource limits help, but do not replace host hardening, patching, or stronger isolation for untrusted workloads.
-- **Network segmentation:** Traefik and the Hub share `jupyterhub_proxy_net`; only the Hub and notebook containers join `jupyterhub_net`. Notebook-to-notebook isolation requires the optional native Linux firewall rules, which remain untested; see [Linux network isolation](../README.md#linux-network-isolation).
+- **Network segmentation:** Traefik and the Hub share `jupyterhub_proxy_net`; only the Hub and notebook containers join `jupyterhub_net`. Notebook-to-notebook isolation requires the optional native Linux firewall rules and enabled bridge filtering. Selected paths were tested on a Debian ARM64 VM, not every platform or address range; see [Linux network isolation](../README.md#linux-network-isolation) and the [report](validation-linux-2026-10-27.md).
 - **No disk quotas or automated backups:** implement these operationally if needed.
 
 The `.gitignore` provides guardrails, not secret detection. Review staged files before publishing. There is no checked-in password. Compose's optional storage variables are documented in `.env.example`; no environment variables are required when using the Linux defaults.
@@ -127,7 +127,7 @@ The first request should redirect to HTTPS; the second should succeed with certi
 ### Notebook spawning failures
 
 ```sh
-docker image inspect jupyterhub-scientific-notebook:0.1.0
+docker image inspect jupyterhub-scientific-notebook:0.2.0
 docker network inspect jupyterhub_net
 docker ps -a
 ```

@@ -1,0 +1,142 @@
+{
+  "release": "v0.2.0",
+  "recorded_at": "2026-10-27T15:24:43.371988+00:00",
+  "source_base_commit": "faa91d42c327da0d577a8101b449eeae62466c94",
+  "source_identity": "Working tree before release commit; compare functional-file SHA-256 against the release tag. Subsequent changes limited to docs/evidence.",
+  "functional_files_sha256": {
+    "compose.yml": "2fcd05abe27a23cb4a04b8e007d6c52b77e2a15e50ff1f8395bd5dc3d6f6f941",
+    "jupyterhub/jupyterhub_config.py": "15ae3c39b61c042396a53d5e3470d5ab25651833afc5e16743c9f0cbf32ff9da",
+    "jupyterhub/Dockerfile": "0b60a1985878540120a7807341dafb92fd9470c477af97698d83e086dfbb5e6a",
+    "singleuser/Dockerfile": "e92e4060af51244de29072014993d659b4c3ca3ed1aa06d5234767cc3d6c9181",
+    "singleuser/register-conda-kernel.py": "e7a9a872d44a42a03902267925f42567a11bf23ff9d0e16d6309ce7265a48b87",
+    "deploy_linux/jhub-net-rules.sh": "4652cec0190768c553edf5cf5abcd35cb68bed7cb3c758b06864570908889a6b",
+    "deploy_linux/jhub-net-rules.service": "66d9125cbc86e32d943803b4a8b5f11113cf8173cdf281ca8cdb71d5a0b8377f",
+    "tests/integration/smoke.py": "2355822fe04669f4d4925f4a97369c380065259bb1d6b3139fbb0a231096cc7d",
+    "tests/integration/linux_firewall_smoke.py": "844bd8fdac2b4c1b2b6443020b93e594d1b8ec5bdbc54f71006d00fb1f3a5f77"
+  },
+  "builds": {
+    "command": "docker build -t IMAGE:0.2.0 CONTEXT",
+    "cache": "Project layers reused; not uncached or reproducible-build validation",
+    "base_images": [
+      "jupyterhub/jupyterhub:5.4.4-3@sha256:eaf5ab9de7851cd331cd4b854f1876c2863855b64775e6dce75d7e27174557c4",
+      "quay.io/jupyter/minimal-notebook:python-3.12@sha256:5b868d38f2b454cb22abb077052d341d3d7aeec2315c296c44de3b1278425782"
+    ],
+    "desktop_images": [
+      {
+        "Id": "sha256:dae75b15cb9f803a4359abd961e4f9b14d97815019538ebf4752f1e0ceb066a3",
+        "RepoTags": [
+          "jupyterhub-scientific-hub:0.2.0"
+        ],
+        "Architecture": "arm64"
+      },
+      {
+        "Id": "sha256:3067804b9effd87d10347fccc27013a6a046d4d6891d0b0e5b96f106b8d2f0df",
+        "RepoTags": [
+          "jupyterhub-scientific-notebook:0.2.0"
+        ],
+        "Architecture": "arm64"
+      }
+    ],
+    "vm_images": [
+      {
+        "Id": "sha256:2aacefd44043e275e50784154be1996ee4e5e27260d5e517d4dc1614382936f8",
+        "RepoTags": [
+          "jupyterhub-scientific-hub:0.2.0"
+        ],
+        "Architecture": "arm64"
+      },
+      {
+        "Id": "sha256:474351c99624be673ce2fb406e44343942dda516d558f847f2239ca65f1c4107",
+        "RepoTags": [
+          "jupyterhub-scientific-notebook:0.2.0"
+        ],
+        "Architecture": "arm64"
+      }
+    ]
+  },
+  "unit_tests": {
+    "count": 27,
+    "python_versions": [
+      "3.10",
+      "3.12",
+      "3.13 (Debian)"
+    ],
+    "result": "passed"
+  },
+  "desktop_rehearsal": {
+    "report": "validation-rehearsal-2026-10-27.json",
+    "checks": 64,
+    "result": "passed"
+  },
+  "linux_release_recheck": {
+    "updated_stack": "Hub recreated using 0.2.0, prova2 server stopped and freshly spawned using 0.2.0; temporary admin API tokens expired after 600 seconds and were deleted after each operation",
+    "runtime": {
+      "client": "jupyter-prova2",
+      "checks": [
+        {
+          "check": "Hub can reach temporary HTTP target",
+          "passed": true,
+          "detail": "200"
+        },
+        {
+          "check": "Notebook cannot reach temporary HTTP target",
+          "passed": true,
+          "detail": "timeout"
+        },
+        {
+          "check": "Hub API health from notebook",
+          "passed": true,
+          "detail": "200"
+        },
+        {
+          "check": "Hub port 8000 positive control",
+          "passed": true,
+          "detail": "listening"
+        },
+        {
+          "check": "Notebook cannot reach Hub port 8000",
+          "passed": true,
+          "detail": "timeout"
+        },
+        {
+          "check": "Notebook DNS",
+          "passed": true,
+          "detail": "172.66.147.243"
+        },
+        {
+          "check": "Notebook Internet HTTPS",
+          "passed": true,
+          "detail": "200"
+        },
+        {
+          "check": "Verified Traefik HTTPS",
+          "passed": true,
+          "detail": "200"
+        },
+        {
+          "check": "Notebook PyROOT",
+          "passed": true,
+          "detail": "6.40.04"
+        },
+        {
+          "check": "User network IPv6 disabled",
+          "passed": true,
+          "detail": false
+        },
+        {
+          "check": "Workspace UID/GID/mode",
+          "passed": true,
+          "detail": "1000:100 0700"
+        }
+      ]
+    },
+    "dns_override": "192.168.64.1; repository default CHANGE_ME",
+    "service": "active after new Hub/notebook deployment"
+  },
+  "limitations": [
+    "ARM64 only; no amd64 validation",
+    "Linux migration/backup restoration and full address-range coverage remain untested",
+    "No load/production-hardening or CD claim",
+    "Hosted CI must be reviewed after push"
+  ]
+}
